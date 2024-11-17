@@ -1,0 +1,31 @@
+[tool.poetry]
+authors = ["mm21 <mm21.dev@gmail.com>"]
+classifiers = [
+  # Get the list of trove classifiers here: https://pypi.org/classifiers/
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Operating System :: OS Independent",
+  "Typing :: Typed",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Development Status :: 1 - Planning",
+  "Natural Language :: English",
+  "License :: OSI Approved :: MIT License"
+]
+name = "clipsmith"
+packages = [{include = "clipsmith"}]
+version = "0.1.0"
+description = "Utility to work with video clips, especially suited for creating timelapses from dashcam footage"
+homepage = "https://github.com/mm21/clipsmith"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.11.0"
+
+[tool.black]
+line-length = 80
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
