@@ -1,4 +1,7 @@
 **/__pycache__
+__out__
+.doit.db*
 .pytest_cache
+.coverage
 build
 dist
