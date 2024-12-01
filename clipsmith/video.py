@@ -97,14 +97,29 @@ class BaseVideo(ABC):
 
 class RawVideo(BaseVideo):
     """
-    Encapsulates a single video file.
+    Encapsulates a single pre-existing video file.
     """
 
     def __init__(
         self,
         path: Path,
-        metadata: VideoMetadata | None = None,
         profile: BaseProfile | None = None,
+        metadata: VideoMetadata | None = None,
     ):
+        """
+        Create a new raw video from a file, using profile to extract
+        metadata if metadata is not explicitly given.
+        """
         metadata_ = metadata or VideoMetadata._extract(path, profile)
         super().__init__(path, metadata_)
+
+    @classmethod
+    def from_folder(
+        self, path: Path, profile: BaseProfile | None = None
+    ) -> list[RawVideo]:
+        """
+        Get list of raw videos from a folder.
+
+        Attempts to read from the .yaml cache first, and creates it after
+        processing if it doesn't exist.
+        """
