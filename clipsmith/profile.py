@@ -7,9 +7,7 @@ video file, e.g. the location of the date/time stamp.
 class BaseProfile:
     profile_id: str
 
-    datetime_rect_pct: tuple[
-        tuple[float, float], tuple[float, float]
-    ] | None = None
+    datetime_rect: tuple[tuple[float, float], tuple[float, float]] | None = None
     """
     Location of datetime as tuple of upper-left coordinate and size, both
     specified in terms of percents. 
