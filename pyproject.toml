@@ -40,10 +40,12 @@ doit = "^0.36.0"
 isort = "^5.13.2"
 pytest = "^8.3.3"
 pytest-cov = "^6.0.0"
+pytest-powerpack = "^0.1.2"
 toml-sort = "^0.24.2"
 
 [tool.pytest.ini_options]
 addopts = "-s -v -rA"
+powerpack_underline = true
 testpaths = "test"
 
 [tool.coverage.report]

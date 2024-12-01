@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 
 from clipsmith.profiles import GarminDashcamMini2
@@ -12,3 +13,6 @@ def test_read(dashcam_mini2_path: Path):
     sample_1 = RawVideo(
         dashcam_mini2_path / "sample-1.mp4", profile=GarminDashcamMini2
     )
+
+    assert sample_1.valid
+    assert math.isclose(sample_1.duration, 1.007)

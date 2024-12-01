@@ -2,6 +2,8 @@ from pathlib import Path
 
 from pytest import fixture
 
+pytest_plugins = ["pytest_powerpack"]
+
 TEST_ROOT = Path(__file__).parent
 
 

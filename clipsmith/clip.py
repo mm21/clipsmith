@@ -7,11 +7,23 @@ from typing import TYPE_CHECKING
 from doit.task import Task
 from pydantic import BaseModel
 
-from .profile import BaseProfile, DefaultProfile
-from .video import BaseVideo
+from .profile import BaseProfile
+from .video import BaseVideo, VideoMetadata
 
 if TYPE_CHECKING:
     from .context import Context
+
+
+class EndpointParams(BaseModel):
+    offset: float | None = None
+    """
+    Offset in seconds.
+    """
+
+    datetime: DateTime | None = None
+    """
+    Datetime.
+    """
 
 
 class DurationParams(BaseModel):
@@ -29,11 +41,15 @@ class DurationParams(BaseModel):
     Derive duration from source with provided scale factor.
     """
 
-    start_datetime: DateTime | None = None
-    end_datetime: DateTime | None = None
+    start: EndpointParams | None = None
+    """
+    Start of output video relative to input.
+    """
 
-    start_offset: float | None = None
-    end_offset: float | None = None
+    end: EndpointParams | None = None
+    """
+    End of output video relative to input.
+    """
 
 
 class OperationParams(BaseModel):
@@ -63,12 +79,8 @@ class Clip(BaseVideo):
     operations
     """
 
-    __path: Path
-    """
-    
-    """
-    __inputs: list[BaseVideo]
     __context: Context
+    __inputs: list[BaseVideo]
 
     __operation: OperationParams
     """
@@ -77,53 +89,43 @@ class Clip(BaseVideo):
 
     __profile: BaseProfile
 
-    __task: Task | None = None
+    __task: Task
     """
     Task corresponding to operation.
     """
 
     def __init__(
         self,
+        context: Context,
         path: Path,
         inputs: list[BaseVideo],
-        context: Context,
         operation: OperationParams,
-        profile: BaseProfile | None = None,
     ):
         """
-        Creates a clip associated with the given context and profile.
+        Creates a clip associated with the given context.
         """
-        self.__path = path
+
+        # TODO: derive from operation params
+        metadata = VideoMetadata()
+
+        super().__init__(path, metadata)
+
         self.__context = context
-        self.__profile = profile or DefaultProfile()
+        self.__inputs = inputs
+        self.__operation = operation
 
-    def reforge(
-        self,
-        path: Path,
-        time_scale: float | int | None = None,
-        res_scale: float | int | None = None,
-    ) -> Clip:
+        self.__prepare_task()
+
+    def reforge(self, path: Path, operation: OperationParams) -> Clip:
         """
-        Creates a new clip from this one with the indicated processing.
-
-        Adds a doit task to the associated context; user can then perform
-        processing by invoking `Context.doit`.
+        Creates a new clip from this one using the indicated operations.
         """
-        operation = OperationParams(
-            input_path=self.__path,
-            output_path=path,
-            time_scale=time_scale,
-            res_scale=res_scale,
-        )
+        return self.__context.forge(path, [self], operation)
 
-        new_clip = Clip(path, context=self.__context)
-        new_clip._prepare_operation(operation)
-
-        return new_clip
-
-    def _prepare_operation(self, operation: OperationParams):
+    def __prepare_task(self, operation: OperationParams):
         """
         Prepares for creation of this clip using the given operation,
-        creating a corresponding doit task.
+        creating a corresponding doit task and associating it with the
+        context.
         """
         self.__operation = operation
