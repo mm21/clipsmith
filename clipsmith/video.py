@@ -7,8 +7,73 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from ._ffmpeg import FFPROBE
+from ._ffmpeg import FFPROBE_PATH
 from .profile import BaseProfile, DefaultProfile
+
+
+def _extract_duration(path: str) -> tuple[float, bool]:
+    """
+    Get duration and validity.
+    """
+    cmd = [
+        FFPROBE_PATH,
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        path,
+    ]
+
+    pipes = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    stdout, stderr = pipes.communicate()
+    stdout = stdout.decode()
+
+    if pipes.returncode != 0 or len(stderr) > 0 or len(stdout) == 0:
+        duration = 0.0
+        valid = False
+    else:
+        duration = float(stdout)
+        valid = True
+
+    return (duration, valid)
+
+
+def _extract_res(path: str) -> tuple[tuple[int, int], bool]:
+    """
+    Extract resolution and validity.
+    """
+
+    cmd = [
+        FFPROBE_PATH,
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=width,height",
+        "-of",
+        "csv=p=0",
+        path,
+    ]
+
+    pipes = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    stdout, stderr = pipes.communicate()
+    stdout = stdout.decode().strip()
+
+    if pipes.returncode != 0 or len(stderr) > 0 or len(stdout) == 0:
+        res = (0, 0)
+        valid = False
+    else:
+        res = map(int, stdout.split(","))
+        valid = True
+
+    return (res, valid)
 
 
 class VideoMetadata(BaseModel):
@@ -19,6 +84,7 @@ class VideoMetadata(BaseModel):
 
     valid: bool
     duration: float
+    resolution: tuple[int, int]
     datetime: tuple[DateTime, DateTime] | None = None
 
     @classmethod
@@ -29,33 +95,14 @@ class VideoMetadata(BaseModel):
 
         profile or DefaultProfile()
 
-        cmd = [
-            FFPROBE,
-            "-v",
-            "error",
-            "-show_entries",
-            "format=duration",
-            "-of",
-            "default=noprint_wrappers=1:nokey=1",
-            path,
-        ]
+        duration, duration_valid = _extract_duration(path.resolve())
+        res, res_valid = _extract_res(path.resolve())
 
-        pipes = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        stdout, stderr = pipes.communicate()
-        stdout = stdout.decode()
-
-        if pipes.returncode != 0 or len(stderr) > 0 or len(stdout) == 0:
-            valid = False
-            duration = 0.0
-        else:
-            valid = True
-            duration = float(stdout)
+        valid = duration_valid and res_valid
 
         # TODO: try to extract datetime based on profile
 
-        return cls(valid=valid, duration=duration)
+        return cls(valid=valid, duration=duration, resolution=res)
 
 
 class BaseVideo(ABC):
@@ -86,6 +133,10 @@ class BaseVideo(ABC):
         Getter for duration in seconds.
         """
         return self.__metadata.duration
+
+    @property
+    def resolution(self) -> tuple[int, int]:
+        return self.__metadata.resolution
 
     @property
     def datetime(self) -> tuple[DateTime, DateTime] | None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import subprocess
+import tempfile
 from datetime import datetime as DateTime
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterable
@@ -7,6 +9,7 @@ from typing import TYPE_CHECKING, Iterable
 from doit.task import Task
 from pydantic import BaseModel
 
+from ._ffmpeg import FFMPEG_PATH
 from .video import BaseVideo, VideoMetadata
 
 if TYPE_CHECKING:
@@ -58,9 +61,9 @@ class OperationParams(BaseModel):
 
     duration_params: DurationParams | None = None
 
-    res_scale: float | int | None = None
+    res_scale: float | int | str | None = None
     """
-    Resolution scale factor.
+    Resolution scale factor or absolute resolution as `x:y`.
     """
 
     audio: bool = True
@@ -93,6 +96,11 @@ class Clip(BaseVideo):
     Context associated with clip.
     """
 
+    __time_scale: float | int | None
+    """
+    Time scale, if any.
+    """
+
     __task: Task
     """
     Doit task corresponding to operation.
@@ -110,22 +118,26 @@ class Clip(BaseVideo):
         """
 
         inputs_ = inputs if isinstance(inputs, Iterable) else [inputs]
+        valid_inputs = [v for v in inputs_ if v.valid]
+        assert len(valid_inputs), f"No valid inputs from {inputs}"
 
-        # TODO: derive from other operation params (explicit duration, etc)
-        time_scale = (
-            (operation.duration_params.time_scale or 1)
-            if operation.duration_params
-            else 1
+        duration = sum(i.duration for i in valid_inputs)
+        time_scale = self.__get_time_scale(duration)
+        resolution = self.__get_resolution(operation, valid_inputs[0])
+
+        if time_scale:
+            duration *= time_scale
+
+        metadata = VideoMetadata(
+            valid=True, duration=duration, resolution=resolution
         )
-        duration = sum(i.duration for i in inputs_) * time_scale
-
-        metadata = VideoMetadata(valid=True, duration=duration)
 
         super().__init__(path, metadata)
 
-        self.__inputs = inputs_
+        self.__inputs = valid_inputs
         self.__operation = operation
         self.__context = context
+        self.__time_scale = time_scale
         self.__task = self.__prepare_task()
 
     def reforge(self, path: Path, operation: OperationParams) -> Clip:
@@ -137,13 +149,107 @@ class Clip(BaseVideo):
     def _get_task(self) -> Task:
         return self.__task
 
+    def __get_time_scale(self, duration: float) -> float | int | None:
+        if duration_params := self.__operation.duration_params:
+            if duration_params.duration:
+                return duration_params.duration / duration
+            elif duration_params.time_scale:
+                return duration_params.time_scale
+
+        return None
+
+    def __get_resolution(
+        self, operation: OperationParams, first: BaseVideo
+    ) -> tuple[int, int]:
+        if res_scale := operation.res_scale:
+            if isinstance(res_scale, str):
+                split = res_scale.split(":")
+                assert len(split) == 2, f"Invalid resolution: {res_scale}"
+
+                x, y = map(int, split)
+            else:
+                x, y = int(first.resolution[0] / res_scale), int(
+                    first.resolution[1] / res_scale
+                )
+
+            return (x, y)
+        else:
+            return first.resolution
+
     def __prepare_task(self) -> Task:
         """
-        Prepares for creation of this clip using the given operation,
+        Prepare for creation of this clip using the given operation,
         creating a corresponding doit task.
         """
 
-        # TODO: prepare doit task w/ffmpeg command
-        # - get ffmpeg params from inputs, operation, metadata
-        # - inputs: normalize to list of valid files, create temp .txt
-        # and pass to ffmpeg
+        inputs = [i.path.resolve() for i in self.__inputs]
+
+        # collect needed info
+        time_scale = self.__time_scale
+        res_scale = self.__operation.res_scale
+        out_path = str(self.path.resolve())
+
+        if len(inputs) == 1:
+            # single input, use -i arg
+            input_args = ["-i", inputs[0]]
+        else:
+            # multiple inputs, use temp file containing list of files
+            input_args = [
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                self.__create_file_list(inputs),
+            ]
+
+        codec_args = ["-c", "copy"]
+
+        # enable video filters (scaling, cropping, etc) if needed
+        filter_args = ["-filter:v"] if time_scale or res_scale else []
+
+        # time scaling
+        time_args = [f"setpts={time_scale}*PTS"] if time_scale else []
+
+        # resolution scaling
+        if res_scale:
+            res_args = [f"scale={self.resolution[0]}:{self.resolution[1]}"]
+        else:
+            res_args = []
+
+        # audio
+        audio_args = [] if self.__operation.audio else ["-an"]
+
+        args = (
+            [FFMPEG_PATH]
+            + input_args
+            + codec_args
+            + filter_args
+            + time_args
+            + res_args
+            + audio_args
+            + [out_path]
+        )
+
+        def action():
+            subprocess.check_call(args)
+
+        return Task(
+            str(self.__path),
+            [action],
+            file_dep=[str(i) for i in inputs],
+            targets=[out_path],
+        )
+
+    def __create_file_list(self, inputs: list[Path]) -> str:
+        """
+        Create a list of files in a temp folder.
+        """
+
+        temp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
+
+        for file in inputs:
+            temp.write(f"file '{str(file)}'\n")
+
+        temp.flush()
+        return str(temp)
