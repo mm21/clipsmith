@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from pytest import FixtureRequest, fixture
@@ -6,6 +7,8 @@ pytest_plugins = ["pytest_powerpack"]
 
 TEST_ROOT = Path(__file__).parent
 OUTPUT_PATH = TEST_ROOT / "__out__"
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 @fixture

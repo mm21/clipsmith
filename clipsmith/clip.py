@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import subprocess
 import tempfile
 from datetime import datetime as DateTime
@@ -33,12 +34,12 @@ class DurationParams(BaseModel):
     Specifies duration of new clip.
     """
 
-    duration: float | int | None = None
+    duration: float | None = None
     """
     Explicitly provided duration.
     """
 
-    time_scale: float | int | None = None
+    time_scale: float | None = None
     """
     Derive duration from source with provided scale factor.
     """
@@ -117,20 +118,18 @@ class Clip(BaseVideo):
         valid_inputs = [v for v in inputs_ if v.valid]
         assert len(valid_inputs), f"No valid inputs from {inputs}"
 
-        duration = sum(i.duration for i in valid_inputs)
-        time_scale = _get_time_scale(operation, duration)
+        duration_orig = sum(i.duration for i in valid_inputs)
+        duration_scaled, time_scale = _get_time_params(operation, duration_orig)
         resolution = _get_resolution(operation, valid_inputs[0])
 
         # TODO: handle offset from video start, if given
         # - subtract offset from duration
         # - add offset to valid_inputs[0].datetime
-
-        if time_scale:
-            duration *= time_scale
+        # - use -t arg to trim time
 
         metadata = VideoMetadata(
             valid=True,
-            duration=duration,
+            duration=duration_scaled or duration_orig,
             resolution=resolution,
             datetime=valid_inputs[0].datetime,
         )
@@ -159,7 +158,7 @@ class Clip(BaseVideo):
         self,
         operation: OperationParams,
         inputs: list[BaseVideo],
-        time_scale: float | int | None,
+        time_scale: float | None,
     ) -> Task:
         """
         Prepare for creation of this clip using the given operation,
@@ -175,30 +174,46 @@ class Clip(BaseVideo):
             input_args = ["-i", str(input_paths[0])]
         else:
             # multiple inputs, use temp file containing list of files
+
+            temp = tempfile.NamedTemporaryFile(
+                mode="w", suffix=".txt", delete=False
+            )
+            temp.writelines([f"file '{str(file)}'\n" for file in input_paths])
+
+            temp.flush()
+            temp.close()
+
             input_args = [
                 "-f",
                 "concat",
                 "-safe",
                 "0",
                 "-i",
-                _create_file_list(input_paths),
+                temp.name,
             ]
 
-        codec_args = ["-c", "copy"]
-
-        # enable video filters (scaling, cropping, etc) if needed
-        filter_args = ["-filter:v"] if time_scale or res_scale else []
+        # these ffmpeg params are mutually exclusive
+        if time_scale or res_scale:
+            # enable video filters (scaling, cropping, etc)
+            codec_args = []
+            filter_args = ["-filter:v"]
+        else:
+            # use copy codec
+            codec_args = ["-c", "copy"]
+            filter_args = []
 
         # time scaling
         time_args = [f"setpts={time_scale}*PTS"] if time_scale else []
 
         # resolution scaling
-        if res_scale:
-            res_args = [f"scale={self.resolution[0]}:{self.resolution[1]}"]
-        else:
-            res_args = []
+        res_args = (
+            [f"scale={self.resolution[0]}:{self.resolution[1]}"]
+            if res_scale
+            else []
+        )
 
         # audio
+        # TODO: properly handle audio scaling if time scaling enabled
         audio_args = [] if operation.audio else ["-an"]
 
         args = (
@@ -213,31 +228,43 @@ class Clip(BaseVideo):
         )
 
         def action():
+            # TODO: get args on the fly since actual durations might
+            # not be as expected (due to time scaling)
+            # - use self.__inputs, self.__operation
+            logging.debug(f"Invoking ffmpeg: {' '.join(args)}")
             subprocess.check_call(args)
+
+            # TODO: read newly created file and update duration
 
         return Task(
             str(self.path),
             [action],
-            file_dep=[str(i) for i in inputs],
+            file_dep=[str(i.path) for i in inputs],
             targets=[out_path],
         )
 
 
-def _get_time_scale(
-    operation: OperationParams, duration: float
-) -> float | int | None:
+def _get_time_params(
+    operation: OperationParams, duration_orig: float
+) -> tuple[float | None, float | None]:
     """
-    Get target time scale based on operation and duration.
+    Get target duration and time scale based on operation.
     """
     if duration_params := operation.duration_params:
         if duration_params.time_scale:
-            # explicitly given time scale
-            return duration_params.time_scale
+            # given time scale
+            return (
+                duration_params.time_scale * duration_orig,
+                duration_params.time_scale,
+            )
         elif duration_params.duration:
-            # derive from duration
-            return duration_params.duration / duration
+            # given duration
+            return (
+                duration_params.duration,
+                duration_orig / duration_params.duration,
+            )
 
-    return None
+    return None, None
 
 
 def _get_resolution(
@@ -263,17 +290,3 @@ def _get_resolution(
         return (x, y)
     else:
         return first.resolution
-
-
-def _create_file_list(inputs: list[Path]) -> str:
-    """
-    Create a list of files in a temp folder.
-    """
-
-    temp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
-
-    for file in inputs:
-        temp.write(f"file '{str(file)}'\n")
-
-    temp.flush()
-    return str(temp)

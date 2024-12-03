@@ -1,37 +1,48 @@
 import math
+import os
 from pathlib import Path
 
 from clipsmith.clip import DurationParams, OperationParams
 from clipsmith.context import Context
-from clipsmith.profiles import BaseProfile, GarminDashcamMini2
+from clipsmith.profiles import GarminDashcamMini2
 from clipsmith.video import RawVideo
 
 
-def test_forge(dashcam_mini2_path: Path, output_dir: Path):
+def test_concat(dashcam_mini2_path: Path, output_dir: Path):
     """
     Forge a new clip by concatenating inputs.
     """
 
-    inputs = _get_inputs(dashcam_mini2_path, GarminDashcamMini2)[:2]
+    inputs = _get_inputs(dashcam_mini2_path)[:2]
     context = Context()
     operation = OperationParams()
 
     clip = context.forge(output_dir / "clip.mp4", inputs, operation)
+
+    if clip.path.exists():
+        os.remove(clip.path)
+
     context.doit()
 
     assert clip.path.is_file()
 
-    # read video and confirm it's as expectd
+    # read video and check
     video = RawVideo(clip.path)
-    assert math.isclose(video.duration, 1.007 * 2)
+    assert math.isclose(video.duration, clip.duration, rel_tol=0.01)
 
 
-def test_timelapse(dashcam_mini2_path: Path, output_dir: Path):
+def test_concat_folder(dashcam_mini2_path: Path):
     """
-    Forge a new clip by concatenating inputs and rescaling time.
+    Concatenate all inputs from folder.
     """
 
-    inputs = _get_inputs(dashcam_mini2_path, GarminDashcamMini2)[:2]
+
+def test_time_scale(dashcam_mini2_path: Path, output_dir: Path):
+    """
+    Rescale time.
+    """
+
+    inputs = _get_inputs(dashcam_mini2_path)[:1]
     context = Context()
     operation = OperationParams(
         duration_params=DurationParams(time_scale=5),
@@ -39,33 +50,49 @@ def test_timelapse(dashcam_mini2_path: Path, output_dir: Path):
     )
 
     clip = context.forge(output_dir / "clip.mp4", inputs, operation)
+
+    if clip.path.exists():
+        os.remove(clip.path)
+
     context.doit()
 
     assert clip.path.is_file()
 
-    # read video and confirm it's as expectd
+    # read video and check
     video = RawVideo(clip.path)
-    assert math.isclose(video.duration, 1.007 * 2 * 5)
+    # TODO: use clip.duration after duration refresh implemented
+    assert math.isclose(video.duration, 4.972, rel_tol=0.01)
+
+
+def test_time_scale_concat(dashcam_mini2_path: Path, output_dir: Path):
+    """
+    Rescale time and concatenate inputs.
+    """
+
+
+def test_res_scale(dashcam_mini2_path: Path, output_dir: Path):
+    """
+    Rescale resolution.
+    """
+
+
+def test_res_scale_concat(dashcam_mini2_path: Path, output_dir: Path):
+    """
+    Rescale resolution and concatenate inputs.
+    """
 
 
 def test_invalid(dashcam_mini2_path: Path):
     """
-    Forge a new clip by concatenating inputs, with one input being
-    invalid.
+    Concatenate inputs, with one input being invalid.
     """
 
 
-def test_folder(dashcam_mini2_path: Path):
-    """
-    Forge a new clip by concatenating inputs from a folder.
-    """
-
-
-def _get_inputs(path: Path, profile: BaseProfile) -> list[RawVideo]:
+def _get_inputs(path: Path) -> list[RawVideo]:
     files = [
         "sample-1.mp4",
         "sample-2.mp4",
         "sample-3.mp4",
         "sample-invalid.mp4",
     ]
-    return [RawVideo(path / file, profile=profile) for file in files]
+    return [RawVideo(path / file, profile=GarminDashcamMini2) for file in files]

@@ -53,10 +53,15 @@ class Context:
         tasks = self.__tasks
 
         class Loader(TaskLoader2):
-            def load_tasks(self, cmd: Command, args: list[str]):
+            def load_tasks(self, cmd: Command, pos_args: list[str]):
                 return tasks
 
-        doit_main = DoitMain(task_loader=Loader())
+            def load_doit_config(self):
+                return {}
+
+        doit_main = DoitMain(task_loader=Loader(), config_filenames=())
         cmd = ["run"] + [task.name for task in tasks]
 
-        doit_main.run(cmd)
+        ret = doit_main.run(cmd)
+        if ret != 0:
+            raise ChildProcessError("Failed to run doit tasks")
