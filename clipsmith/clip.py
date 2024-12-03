@@ -81,24 +81,20 @@ class Clip(BaseVideo):
     operations
     """
 
-    __inputs: list[BaseVideo]
+    _inputs: list[BaseVideo]
     """
-    Normalized list of inputs.
+    Normalized list of valid inputs, for debugging only.
     """
 
-    __operation: OperationParams
+    _operation: OperationParams
     """
-    Operation to create the video corresponding to this clip.
+    Operation to create the video corresponding to this clip, 
+    for debugging only.
     """
 
     __context: Context
     """
     Context associated with clip.
-    """
-
-    __time_scale: float | int | None
-    """
-    Time scale, if any.
     """
 
     __task: Task
@@ -122,23 +118,30 @@ class Clip(BaseVideo):
         assert len(valid_inputs), f"No valid inputs from {inputs}"
 
         duration = sum(i.duration for i in valid_inputs)
-        time_scale = self.__get_time_scale(duration)
-        resolution = self.__get_resolution(operation, valid_inputs[0])
+        time_scale = _get_time_scale(operation, duration)
+        resolution = _get_resolution(operation, valid_inputs[0])
+
+        # TODO: handle offset from video start, if given
+        # - subtract offset from duration
+        # - add offset to valid_inputs[0].datetime
 
         if time_scale:
             duration *= time_scale
 
         metadata = VideoMetadata(
-            valid=True, duration=duration, resolution=resolution
+            valid=True,
+            duration=duration,
+            resolution=resolution,
+            datetime=valid_inputs[0].datetime,
         )
 
         super().__init__(path, metadata)
 
-        self.__inputs = valid_inputs
-        self.__operation = operation
         self.__context = context
-        self.__time_scale = time_scale
-        self.__task = self.__prepare_task()
+        self.__task = self.__prepare_task(operation, valid_inputs, time_scale)
+
+        self._inputs = valid_inputs
+        self._operation = operation
 
     def reforge(self, path: Path, operation: OperationParams) -> Clip:
         """
@@ -147,51 +150,29 @@ class Clip(BaseVideo):
         return self.__context.forge(path, [self], operation)
 
     def _get_task(self) -> Task:
+        """
+        Get the doit task previously created.
+        """
         return self.__task
 
-    def __get_time_scale(self, duration: float) -> float | int | None:
-        if duration_params := self.__operation.duration_params:
-            if duration_params.duration:
-                return duration_params.duration / duration
-            elif duration_params.time_scale:
-                return duration_params.time_scale
-
-        return None
-
-    def __get_resolution(
-        self, operation: OperationParams, first: BaseVideo
-    ) -> tuple[int, int]:
-        if res_scale := operation.res_scale:
-            if isinstance(res_scale, str):
-                split = res_scale.split(":")
-                assert len(split) == 2, f"Invalid resolution: {res_scale}"
-
-                x, y = map(int, split)
-            else:
-                x, y = int(first.resolution[0] / res_scale), int(
-                    first.resolution[1] / res_scale
-                )
-
-            return (x, y)
-        else:
-            return first.resolution
-
-    def __prepare_task(self) -> Task:
+    def __prepare_task(
+        self,
+        operation: OperationParams,
+        inputs: list[BaseVideo],
+        time_scale: float | int | None,
+    ) -> Task:
         """
         Prepare for creation of this clip using the given operation,
         creating a corresponding doit task.
         """
 
-        inputs = [i.path.resolve() for i in self.__inputs]
-
-        # collect needed info
-        time_scale = self.__time_scale
-        res_scale = self.__operation.res_scale
+        input_paths = [i.path.resolve() for i in inputs]
+        res_scale = operation.res_scale
         out_path = str(self.path.resolve())
 
-        if len(inputs) == 1:
+        if len(input_paths) == 1:
             # single input, use -i arg
-            input_args = ["-i", inputs[0]]
+            input_args = ["-i", str(input_paths[0])]
         else:
             # multiple inputs, use temp file containing list of files
             input_args = [
@@ -200,7 +181,7 @@ class Clip(BaseVideo):
                 "-safe",
                 "0",
                 "-i",
-                self.__create_file_list(inputs),
+                _create_file_list(input_paths),
             ]
 
         codec_args = ["-c", "copy"]
@@ -218,7 +199,7 @@ class Clip(BaseVideo):
             res_args = []
 
         # audio
-        audio_args = [] if self.__operation.audio else ["-an"]
+        audio_args = [] if operation.audio else ["-an"]
 
         args = (
             [FFMPEG_PATH]
@@ -235,21 +216,64 @@ class Clip(BaseVideo):
             subprocess.check_call(args)
 
         return Task(
-            str(self.__path),
+            str(self.path),
             [action],
             file_dep=[str(i) for i in inputs],
             targets=[out_path],
         )
 
-    def __create_file_list(self, inputs: list[Path]) -> str:
-        """
-        Create a list of files in a temp folder.
-        """
 
-        temp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
+def _get_time_scale(
+    operation: OperationParams, duration: float
+) -> float | int | None:
+    """
+    Get target time scale based on operation and duration.
+    """
+    if duration_params := operation.duration_params:
+        if duration_params.time_scale:
+            # explicitly given time scale
+            return duration_params.time_scale
+        elif duration_params.duration:
+            # derive from duration
+            return duration_params.duration / duration
 
-        for file in inputs:
-            temp.write(f"file '{str(file)}'\n")
+    return None
 
-        temp.flush()
-        return str(temp)
+
+def _get_resolution(
+    operation: OperationParams, first: BaseVideo
+) -> tuple[int, int]:
+    """
+    Get target resolution based on the operation, or the first video in the
+    inputs otherwise.
+
+    TODO: find max resolution from inputs
+    """
+    if res_scale := operation.res_scale:
+        if isinstance(res_scale, str):
+            split = res_scale.split(":")
+            assert len(split) == 2, f"Invalid resolution: {res_scale}"
+
+            x, y = map(int, split)
+        else:
+            x, y = int(first.resolution[0] / res_scale), int(
+                first.resolution[1] / res_scale
+            )
+
+        return (x, y)
+    else:
+        return first.resolution
+
+
+def _create_file_list(inputs: list[Path]) -> str:
+    """
+    Create a list of files in a temp folder.
+    """
+
+    temp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
+
+    for file in inputs:
+        temp.write(f"file '{str(file)}'\n")
+
+    temp.flush()
+    return str(temp)
