@@ -11,7 +11,7 @@ from ._ffmpeg import FFPROBE_PATH
 from .profile import BaseProfile, DefaultProfile
 
 
-def _extract_duration(path: str) -> tuple[float, bool]:
+def _extract_duration(path: Path) -> tuple[float, bool]:
     """
     Get duration and validity.
     """
@@ -23,7 +23,7 @@ def _extract_duration(path: str) -> tuple[float, bool]:
         "format=duration",
         "-of",
         "default=noprint_wrappers=1:nokey=1",
-        path,
+        str(path),
     ]
 
     pipes = subprocess.Popen(
@@ -42,7 +42,7 @@ def _extract_duration(path: str) -> tuple[float, bool]:
     return (duration, valid)
 
 
-def _extract_res(path: str) -> tuple[tuple[int, int], bool]:
+def _extract_res(path: Path) -> tuple[tuple[int, int], bool]:
     """
     Extract resolution and validity.
     """
@@ -57,7 +57,7 @@ def _extract_res(path: str) -> tuple[tuple[int, int], bool]:
         "stream=width,height",
         "-of",
         "csv=p=0",
-        path,
+        str(path),
     ]
 
     pipes = subprocess.Popen(

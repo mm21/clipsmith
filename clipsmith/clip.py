@@ -179,8 +179,6 @@ class Clip(BaseVideo):
                 mode="w", suffix=".txt", delete=False
             )
             temp.writelines([f"file '{str(file)}'\n" for file in input_paths])
-
-            temp.flush()
             temp.close()
 
             input_args = [
@@ -235,6 +233,7 @@ class Clip(BaseVideo):
             subprocess.check_call(args)
 
             # TODO: read newly created file and update duration
+            # - use _extract_duration()
 
         return Task(
             str(self.path),
