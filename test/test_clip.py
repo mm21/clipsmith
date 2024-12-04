@@ -32,13 +32,13 @@ def test_concat_folder(context: Context, output_dir: Path):
 
 def test_time_scale(context: Context, output_dir: Path):
     """
-    Rescale time.
+    Rescale time based on scale factor.
     """
 
     output = output_dir / "clip.mp4"
     inputs = _get_inputs(1)
     operation = OperationParams(
-        duration_params=DurationParams(time_scale=5),
+        duration_params=DurationParams(time_scale=5.0),
         audio=False,
     )
 
@@ -47,6 +47,25 @@ def test_time_scale(context: Context, output_dir: Path):
     context.doit()
 
     check_clip(clip, sum(i.duration for i in inputs) * 5)
+
+
+def test_time_duration(context: Context, output_dir: Path):
+    """
+    Rescale time based on target duration.
+    """
+
+    output = output_dir / "clip.mp4"
+    inputs = _get_inputs(1)
+    operation = OperationParams(
+        duration_params=DurationParams(duration=5.0),
+        audio=False,
+    )
+
+    clip = context.forge(output, inputs, operation)
+
+    context.doit()
+
+    check_clip(clip, 5.0)
 
 
 def test_time_scale_concat(context: Context, output_dir: Path):

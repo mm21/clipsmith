@@ -273,7 +273,7 @@ class Clip(BaseVideo):
                 return duration_params.time_scale
             elif duration_params.duration:
                 # given duration
-                return duration_orig / duration_params.duration
+                return duration_params.duration / duration_orig
 
         return None
 
