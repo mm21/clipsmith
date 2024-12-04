@@ -11,7 +11,7 @@ from doit.task import Task
 from pydantic import BaseModel
 
 from ._ffmpeg import FFMPEG_PATH
-from .video import BaseVideo, VideoMetadata
+from .video import BaseVideo
 
 if TYPE_CHECKING:
     from .context import Context
@@ -82,20 +82,19 @@ class Clip(BaseVideo):
     operations
     """
 
-    _inputs: list[BaseVideo]
-    """
-    Normalized list of valid inputs, for debugging only.
-    """
-
-    _operation: OperationParams
-    """
-    Operation to create the video corresponding to this clip, 
-    for debugging only.
-    """
-
     __context: Context
     """
     Context associated with clip.
+    """
+
+    __inputs: list[BaseVideo]
+    """
+    Normalized list of valid inputs.
+    """
+
+    __operation: OperationParams
+    """
+    Operation to create the video corresponding to this clip.
     """
 
     __task: Task
@@ -115,32 +114,31 @@ class Clip(BaseVideo):
         """
 
         inputs_ = inputs if isinstance(inputs, Iterable) else [inputs]
-        valid_inputs = [v for v in inputs_ if v.valid]
-        assert len(valid_inputs), f"No valid inputs from {inputs}"
+        assert len(inputs_)
 
-        duration_orig = sum(i.duration for i in valid_inputs)
-        duration_scaled, time_scale = _get_time_params(operation, duration_orig)
-        resolution = _get_resolution(operation, valid_inputs[0])
+        resolution = _get_resolution(operation, inputs_[0])
 
-        # TODO: handle offset from video start, if given
-        # - subtract offset from duration
-        # - add offset to valid_inputs[0].datetime
-        # - use -t arg to trim time
-
-        metadata = VideoMetadata(
-            valid=True,
-            duration=duration_scaled or duration_orig,
+        super().__init__(
+            path,
             resolution=resolution,
-            datetime=valid_inputs[0].datetime,
+            datetime_start=inputs_[0].datetime_start,
         )
 
-        super().__init__(path, metadata)
+        # get duration from file if it exists
+        if self.path.exists():
+            self._extract_duration()
 
         self.__context = context
-        self.__task = self.__prepare_task(operation, valid_inputs, time_scale)
+        self.__inputs = inputs_
+        self.__operation = operation
+        self.__task = self.__prepare_task(inputs_)
 
-        self._inputs = valid_inputs
-        self._operation = operation
+    @property
+    def __out_path(self) -> str:
+        """
+        Get absolute path to output file.
+        """
+        return str(self.path.resolve())
 
     def reforge(self, path: Path, operation: OperationParams) -> Clip:
         """
@@ -156,18 +154,47 @@ class Clip(BaseVideo):
 
     def __prepare_task(
         self,
-        operation: OperationParams,
         inputs: list[BaseVideo],
-        time_scale: float | None,
     ) -> Task:
         """
-        Prepare for creation of this clip using the given operation,
-        creating a corresponding doit task.
+        Prepare doit task for creation of this clip from its inputs.
         """
 
-        input_paths = [i.path.resolve() for i in inputs]
-        res_scale = operation.res_scale
-        out_path = str(self.path.resolve())
+        def action():
+            args = self.__get_args()
+
+            logging.debug(f"Invoking ffmpeg: {' '.join(args)}")
+            subprocess.check_call(args)
+
+            # get duration from newly written file
+            assert self.path.exists()
+            self._extract_duration()
+
+        return Task(
+            str(self.path),
+            [action],
+            file_dep=[str(i.path) for i in inputs],
+            targets=[self.__out_path],
+        )
+
+    def __get_args(self) -> list[str]:
+        """
+        Get ffmpeg args.
+
+        TODO: handle offset from video start, if given
+        - subtract offset from duration
+        - add offset to datetime_start
+        - use -t arg to trim time
+        """
+
+        # get time scale, if any
+        time_scale = self.__get_time_scale()
+
+        # get resolution scale, if any
+        res_scale = self.__operation.res_scale
+
+        # get full path to all inputs
+        input_paths = [i.path.resolve() for i in self.__inputs]
 
         if len(input_paths) == 1:
             # single input, use -i arg
@@ -212,58 +239,35 @@ class Clip(BaseVideo):
 
         # audio
         # TODO: properly handle audio scaling if time scaling enabled
-        audio_args = [] if operation.audio else ["-an"]
+        audio_args = [] if self.__operation.audio else ["-an"]
 
-        args = (
-            [FFMPEG_PATH]
+        return (
+            [FFMPEG_PATH, "-loglevel", "error"]
             + input_args
             + codec_args
             + filter_args
             + time_args
             + res_args
             + audio_args
-            + [out_path]
+            + [self.__out_path]
         )
 
-        def action():
-            # TODO: get args on the fly since actual durations might
-            # not be as expected (due to time scaling)
-            # - use self.__inputs, self.__operation
-            logging.debug(f"Invoking ffmpeg: {' '.join(args)}")
-            subprocess.check_call(args)
+    def __get_time_scale(self) -> float | None:
+        """
+        Get target duration and time scale based on operation.
+        """
 
-            # TODO: read newly created file and update duration
-            # - use _extract_duration()
+        duration_orig = sum(i.duration for i in self.__inputs)
 
-        return Task(
-            str(self.path),
-            [action],
-            file_dep=[str(i.path) for i in inputs],
-            targets=[out_path],
-        )
+        if duration_params := self.__operation.duration_params:
+            if duration_params.time_scale:
+                # given time scale
+                return duration_params.time_scale
+            elif duration_params.duration:
+                # given duration
+                return duration_orig / duration_params.duration
 
-
-def _get_time_params(
-    operation: OperationParams, duration_orig: float
-) -> tuple[float | None, float | None]:
-    """
-    Get target duration and time scale based on operation.
-    """
-    if duration_params := operation.duration_params:
-        if duration_params.time_scale:
-            # given time scale
-            return (
-                duration_params.time_scale * duration_orig,
-                duration_params.time_scale,
-            )
-        elif duration_params.duration:
-            # given duration
-            return (
-                duration_params.duration,
-                duration_orig / duration_params.duration,
-            )
-
-    return None, None
+        return None
 
 
 def _get_resolution(
