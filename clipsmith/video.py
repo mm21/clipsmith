@@ -11,74 +11,11 @@ from pydantic import BaseModel
 from ._ffmpeg import FFPROBE_PATH
 from .profile import BaseProfile, DefaultProfile
 
-
-def _extract_duration(path: Path) -> tuple[float | None, bool]:
-    """
-    Get duration and validity.
-    """
-    assert path.exists()
-
-    cmd = [
-        FFPROBE_PATH,
-        "-v",
-        "error",
-        "-show_entries",
-        "format=duration",
-        "-of",
-        "default=noprint_wrappers=1:nokey=1",
-        str(path),
-    ]
-
-    pipes = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    stdout, stderr = pipes.communicate()
-    stdout = stdout.decode()
-
-    if pipes.returncode != 0 or len(stderr) > 0 or len(stdout) == 0:
-        duration = None
-        valid = False
-    else:
-        duration = float(stdout)
-        valid = True
-
-    return (duration, valid)
-
-
-def _extract_res(path: Path) -> tuple[tuple[int, int] | None, bool]:
-    """
-    Extract resolution and validity.
-    """
-
-    cmd = [
-        FFPROBE_PATH,
-        "-v",
-        "error",
-        "-select_streams",
-        "v:0",
-        "-show_entries",
-        "stream=width,height",
-        "-of",
-        "csv=p=0",
-        str(path),
-    ]
-
-    pipes = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    stdout, stderr = pipes.communicate()
-    stdout = stdout.decode().strip()
-
-    if pipes.returncode != 0 or len(stderr) > 0 or len(stdout) == 0:
-        res = None
-        valid = False
-    else:
-        split = stdout.split(",")
-        assert len(split) == 2
-        res = int(split[0]), int(split[1])
-        valid = True
-
-    return (res, valid)
+__all__ = [
+    "BaseVideo",
+    "RawVideoMetadata",
+    "RawVideo",
+]
 
 
 class BaseVideo(ABC):
@@ -235,3 +172,72 @@ class RawVideo(BaseVideo):
 
         TODO
         """
+
+
+def _extract_duration(path: Path) -> tuple[float | None, bool]:
+    """
+    Get duration and validity.
+    """
+    assert path.exists()
+
+    cmd = [
+        FFPROBE_PATH,
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        str(path),
+    ]
+
+    pipes = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    stdout, stderr = pipes.communicate()
+    stdout = stdout.decode()
+
+    if pipes.returncode != 0 or len(stderr) > 0 or len(stdout) == 0:
+        duration = None
+        valid = False
+    else:
+        duration = float(stdout)
+        valid = True
+
+    return (duration, valid)
+
+
+def _extract_res(path: Path) -> tuple[tuple[int, int] | None, bool]:
+    """
+    Extract resolution and validity.
+    """
+
+    cmd = [
+        FFPROBE_PATH,
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=width,height",
+        "-of",
+        "csv=p=0",
+        str(path),
+    ]
+
+    pipes = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    stdout, stderr = pipes.communicate()
+    stdout = stdout.decode().strip()
+
+    if pipes.returncode != 0 or len(stderr) > 0 or len(stdout) == 0:
+        res = None
+        valid = False
+    else:
+        split = stdout.split(",")
+        assert len(split) == 2
+        res = int(split[0]), int(split[1])
+        valid = True
+
+    return (res, valid)

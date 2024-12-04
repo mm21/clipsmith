@@ -4,6 +4,10 @@ Collection of profiles from various vendors.
 
 from .profile import BaseProfile
 
+__all__ = [
+    "GarminDashcamMini2",
+]
+
 
 class GarminDashcamMini2(BaseProfile):
     profile_id = "garmin-dashcam-mini2"

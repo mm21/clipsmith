@@ -44,7 +44,7 @@ pytest-powerpack = "^0.1.2"
 toml-sort = "^0.24.2"
 
 [tool.pytest.ini_options]
-addopts = "-s -v -rA"
+addopts = "--import-mode=importlib -s -v -rA"
 powerpack_underline = true
 testpaths = "test"
 

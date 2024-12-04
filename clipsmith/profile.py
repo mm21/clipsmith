@@ -3,6 +3,11 @@ Encapsulates parameters from which to get additional information from a
 video file, e.g. the location of the date/time stamp.
 """
 
+__all__ = [
+    "BaseProfile",
+    "DefaultProfile",
+]
+
 
 class BaseProfile:
     profile_id: str
