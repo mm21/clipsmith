@@ -13,11 +13,9 @@ def test_concat(context: Context, output_dir: Path):
     Forge a new clip by concatenating inputs.
     """
 
-    output = output_dir / "clip.mp4"
     inputs = _get_inputs(2)
-    operation = OperationParams()
 
-    clip = context.forge(output, inputs, operation)
+    clip = context.forge(output_dir / "clip.mp4", inputs)
     context.doit()
 
     check_clip(clip, sum(i.duration for i in inputs))
@@ -30,9 +28,7 @@ def test_concat_folder(
     Concatenate all inputs from folder.
     """
 
-    output = output_dir / "clip.mp4"
-
-    clip = context.forge(output, dashcam_mini2_path, OperationParams())
+    clip = context.forge(output_dir / "clip.mp4", dashcam_mini2_path)
     context.doit()
 
     check_clip(clip, clip.duration)
@@ -43,14 +39,13 @@ def test_time_scale(context: Context, output_dir: Path):
     Rescale time based on scale factor.
     """
 
-    output = output_dir / "clip.mp4"
     inputs = _get_inputs(1)
     operation = OperationParams(
         duration_params=DurationParams(time_scale=5.0),
         audio=False,
     )
 
-    clip = context.forge(output, inputs, operation)
+    clip = context.forge(output_dir / "clip.mp4", inputs, operation)
     context.doit()
 
     check_clip(clip, sum(i.duration for i in inputs) * 5)
@@ -61,14 +56,13 @@ def test_time_duration(context: Context, output_dir: Path):
     Rescale time based on target duration.
     """
 
-    output = output_dir / "clip.mp4"
     inputs = _get_inputs(1)
     operation = OperationParams(
         duration_params=DurationParams(duration=5.0),
         audio=False,
     )
 
-    clip = context.forge(output, inputs, operation)
+    clip = context.forge(output_dir / "clip.mp4", inputs, operation)
     context.doit()
 
     check_clip(clip, 5.0)
@@ -78,6 +72,28 @@ def test_res_scale(context: Context, output_dir: Path):
     """
     Rescale resolution.
     """
+
+
+def test_reforge(context: Context, output_dir: Path):
+    """
+    Reforge a forged clip.
+    """
+
+    inputs = _get_inputs(2)
+
+    # concatenate
+    clip = context.forge(output_dir / "clip.mp4", inputs)
+
+    # rescale
+    clip2 = clip.reforge(
+        output_dir / "clip2.mp4",
+        OperationParams(duration_params=DurationParams(duration=5.0)),
+    )
+
+    context.doit()
+
+    check_clip(clip, sum(i.duration for i in inputs))
+    check_clip(clip2, 5.0)
 
 
 def _get_inputs(count: int) -> list[RawVideo]:

@@ -29,7 +29,7 @@ class Context:
         self,
         output: Path,
         inputs: Path | BaseVideo | Iterable[Path | BaseVideo],
-        operation: OperationParams,
+        operation: OperationParams | None = None,
     ) -> Clip:
         """
         Creates a new clip from the given input(s) using the given operations.
@@ -77,7 +77,7 @@ class Context:
                 assert i.exists()
                 input_videos += process_input(i)
 
-        clip = Clip(output, input_videos, operation, self)
+        clip = Clip(output, input_videos, operation or OperationParams(), self)
         self.__tasks.append(clip._get_task())
 
         return clip
