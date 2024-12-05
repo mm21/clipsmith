@@ -5,14 +5,7 @@ from pathlib import Path
 from clipsmith.profiles import GarminDashcamMini2
 from clipsmith.video import RAW_CACHE_FILENAME, RawVideo, RawVideoCache
 
-from .conftest import DASHCAM_MINI2_PATH
-
-SAMPLE_FILENAMES = [
-    p.name for p in sorted(DASHCAM_MINI2_PATH.iterdir(), key=lambda p: p.name)
-]
-"""
-List of sample names.
-"""
+from .conftest import DASHCAM_MINI2_FILENAMES
 
 
 def test_read(dashcam_mini2_path: Path):
@@ -42,7 +35,7 @@ def test_invalid(dashcam_mini2_path: Path):
 
 def test_cache(dashcam_mini2_path: Path, tmp_path: Path):
     # copy samples to temp path
-    for filename in SAMPLE_FILENAMES:
+    for filename in DASHCAM_MINI2_FILENAMES:
         shutil.copy(dashcam_mini2_path / filename, tmp_path / filename)
 
     cache = RawVideoCache(tmp_path)
@@ -62,7 +55,9 @@ def test_cache(dashcam_mini2_path: Path, tmp_path: Path):
 
 def _check_cache(cache: RawVideoCache):
     assert len(cache.videos) == 4
-    assert [v.path.name for v in cache.videos] == SAMPLE_FILENAMES
+    assert [v.path.name for v in cache.videos] == DASHCAM_MINI2_FILENAMES
 
     assert len(cache.valid_videos) == 3
-    assert [v.path.name for v in cache.valid_videos] == SAMPLE_FILENAMES[:3]
+    assert [v.path.name for v in cache.valid_videos] == DASHCAM_MINI2_FILENAMES[
+        :3
+    ]

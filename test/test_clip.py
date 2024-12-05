@@ -5,7 +5,7 @@ from clipsmith.context import Context
 from clipsmith.profiles import GarminDashcamMini2
 from clipsmith.video import RawVideo
 
-from .conftest import DASHCAM_MINI2_PATH, check_clip
+from .conftest import DASHCAM_MINI2_FILENAMES, DASHCAM_MINI2_PATH, check_clip
 
 
 def test_concat(context: Context, output_dir: Path):
@@ -100,13 +100,7 @@ def _get_inputs(count: int) -> list[RawVideo]:
     """
     Get the provided number of inputs as raw videos.
     """
-    files = [
-        "sample-1.mp4",
-        "sample-2.mp4",
-        "sample-3.mp4",
-        "sample-invalid.mp4",
-    ]
     return [
         RawVideo(DASHCAM_MINI2_PATH / file, profile=GarminDashcamMini2)
-        for file in files[:count]
+        for file in DASHCAM_MINI2_FILENAMES[:count]
     ]
