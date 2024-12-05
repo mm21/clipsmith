@@ -41,7 +41,7 @@ class BaseVideo(ABC):
         self.__datetime_start = datetime_start
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}(path={self.__path}, metadata={{{self.__metadata}}})"
+        return f"{type(self).__name__}(path={self.__path})"
 
     @property
     def path(self) -> Path:
@@ -195,7 +195,7 @@ class RawVideoCacheModel(BaseModel):
             video_models: list[RawVideoMetadata] = [
                 RawVideoMetadata._extract(p)
                 for p in files
-                if not p.name.startswith(".")
+                if p.is_file() and not p.name.startswith(".")
             ]
 
             return cls(videos=video_models)

@@ -4,13 +4,14 @@ create them.
 """
 
 from pathlib import Path
+from typing import Iterable
 
 from doit.cmd_base import Command, TaskLoader2
 from doit.doit_cmd import DoitMain
 from doit.task import Task
 
 from .clip import Clip, OperationParams
-from .video import BaseVideo
+from .video import BaseVideo, RawVideo, RawVideoCache
 
 
 class Context:
@@ -26,8 +27,8 @@ class Context:
 
     def forge(
         self,
-        path: Path,
-        inputs: BaseVideo | list[BaseVideo],
+        output: Path,
+        inputs: Path | BaseVideo | Iterable[Path | BaseVideo],
         operation: OperationParams,
     ) -> Clip:
         """
@@ -36,11 +37,47 @@ class Context:
         Adds a `doit` task to the associated context; user can then perform
         processing by invoking `Context.doit`.
 
-        :param path: Path to output file
-        :param inputs: One or more input videos, which may be a `RawVideo` or another `Clip`
+        If any folder is passed as input, it is recursively traversed
+        depth-first to form a list of input videos.
+
+        :param output: Path to output file
+        :param inputs: Path to one or more inputs, which may be a video or folder of videos
         :param operation: Parameters to apply to input
         """
-        clip = Clip(path, inputs, operation, self)
+
+        def process_input(path: Path) -> list[BaseVideo]:
+            if path.is_file():
+                return [RawVideo(path)]
+            else:
+                videos: list[BaseVideo] = []
+
+                # add videos from this folder
+                cache = RawVideoCache(path)
+                videos += cache.valid_videos
+
+                # add videos from subfolders
+                folders = [
+                    p
+                    for p in path.iterdir()
+                    if p.is_dir() and not p.name.startswith(".")
+                ]
+                for folder in sorted(folders, key=lambda f: f.name):
+                    videos += process_input(folder)
+
+                return videos
+
+        inputs_ = inputs if isinstance(inputs, Iterable) else [inputs]
+        input_videos: list[BaseVideo] = []
+
+        for i in inputs_:
+            if isinstance(i, BaseVideo):
+                input_videos.append(i)
+            else:
+                assert isinstance(i, Path)
+                assert i.exists()
+                input_videos += process_input(i)
+
+        clip = Clip(output, input_videos, operation, self)
         self.__tasks.append(clip._get_task())
 
         return clip

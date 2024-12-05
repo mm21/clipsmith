@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 from datetime import datetime as DateTime
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
 from doit.task import Task
 from pydantic import BaseModel
@@ -97,7 +97,7 @@ class Clip(BaseVideo):
 
     __inputs: list[BaseVideo]
     """
-    Normalized list of valid inputs.
+    List of inputs.
     """
 
     __operation: OperationParams
@@ -113,23 +113,21 @@ class Clip(BaseVideo):
     def __init__(
         self,
         path: Path,
-        inputs: BaseVideo | list[BaseVideo],
+        inputs: list[BaseVideo],
         operation: OperationParams,
         context: Context,
     ):
         """
         Creates a clip associated with the given context.
         """
+        assert len(inputs), f"No input videos passed"
 
-        inputs_ = inputs if isinstance(inputs, Iterable) else [inputs]
-        assert len(inputs_)
-
-        resolution = _get_resolution(operation, inputs_[0])
+        resolution = _get_resolution(operation, inputs[0])
 
         super().__init__(
             path,
             resolution=resolution,
-            datetime_start=inputs_[0].datetime_start,
+            datetime_start=inputs[0].datetime_start,
         )
 
         # get duration from file if it exists
@@ -137,9 +135,9 @@ class Clip(BaseVideo):
             self._extract_duration()
 
         self.__context = context
-        self.__inputs = inputs_
+        self.__inputs = inputs
         self.__operation = operation
-        self.__task = self.__prepare_task(inputs_)
+        self.__task = self.__prepare_task(inputs)
 
     @property
     def __out_path(self) -> str:
@@ -148,11 +146,11 @@ class Clip(BaseVideo):
         """
         return str(self.path.resolve())
 
-    def reforge(self, path: Path, operation: OperationParams) -> Clip:
+    def reforge(self, output: Path, operation: OperationParams) -> Clip:
         """
         Creates a new clip from this one using the indicated operations.
         """
-        return self.__context.forge(path, [self], operation)
+        return self.__context.forge(output, self, operation)
 
     def _get_task(self) -> Task:
         """
