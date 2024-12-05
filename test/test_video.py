@@ -5,11 +5,10 @@ from pathlib import Path
 from clipsmith.profiles import GarminDashcamMini2
 from clipsmith.video import RAW_CACHE_FILENAME, RawVideo, RawVideoCache
 
+from .conftest import DASHCAM_MINI2_PATH
+
 SAMPLE_FILENAMES = [
-    "sample-1.mp4",
-    "sample-2.mp4",
-    "sample-3.mp4",
-    "sample-invalid.mp4",
+    p.name for p in sorted(DASHCAM_MINI2_PATH.iterdir(), key=lambda p: p.name)
 ]
 """
 List of sample names.
