@@ -3,7 +3,7 @@ from pathlib import Path
 from clipsmith.clip import DurationParams, OperationParams
 from clipsmith.context import Context
 from clipsmith.profiles import GarminDashcamMini2
-from clipsmith.video import RawVideo
+from clipsmith.video import RawVideo, RawVideoCache
 
 from .conftest import DASHCAM_MINI2_PATH, check_clip
 
@@ -24,10 +24,17 @@ def test_concat(context: Context, output_dir: Path):
     check_clip(clip, sum(i.duration for i in inputs))
 
 
-def test_concat_folder(context: Context, output_dir: Path):
+def test_concat_folder(
+    context: Context, output_dir: Path, dashcam_mini2_path: Path
+):
     """
     Concatenate all inputs from folder.
     """
+
+    cache = RawVideoCache(dashcam_mini2_path)
+
+    # create clip from list of valid videos
+    cache.valid_videos
 
 
 def test_time_scale(context: Context, output_dir: Path):
@@ -68,27 +75,9 @@ def test_time_duration(context: Context, output_dir: Path):
     check_clip(clip, 5.0)
 
 
-def test_time_scale_concat(context: Context, output_dir: Path):
-    """
-    Rescale time and concatenate inputs.
-    """
-
-
 def test_res_scale(context: Context, output_dir: Path):
     """
     Rescale resolution.
-    """
-
-
-def test_res_scale_concat(context: Context, output_dir: Path):
-    """
-    Rescale resolution and concatenate inputs.
-    """
-
-
-def test_invalid(context: Context, output_dir: Path):
-    """
-    Concatenate inputs, with one input being invalid.
     """
 
 

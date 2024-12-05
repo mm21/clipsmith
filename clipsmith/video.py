@@ -5,7 +5,9 @@ from abc import ABC
 from datetime import datetime as DateTime
 from datetime import timedelta as TimeDelta
 from pathlib import Path
+from typing import Self
 
+import yaml
 from pydantic import BaseModel
 
 from ._ffmpeg import FFPROBE_PATH
@@ -16,6 +18,8 @@ __all__ = [
     "RawVideoMetadata",
     "RawVideo",
 ]
+
+RAW_CACHE_FILENAME = ".clipsmith_cache.yaml"
 
 
 class BaseVideo(ABC):
@@ -103,6 +107,7 @@ class RawVideoMetadata(BaseModel):
     re-processing the video.
     """
 
+    filename: str
     valid: bool
     duration: float | None
     resolution: tuple[int, int] | None
@@ -110,7 +115,7 @@ class RawVideoMetadata(BaseModel):
 
     @classmethod
     def _extract(
-        cls, path: Path, profile: BaseProfile | None
+        cls, path: Path, profile: BaseProfile | None = None
     ) -> RawVideoMetadata:
         """
         Gets metadata from the given path.
@@ -125,7 +130,9 @@ class RawVideoMetadata(BaseModel):
 
         # TODO: try to extract datetime_start based on profile
 
-        return cls(valid=valid, duration=duration, resolution=res)
+        return cls(
+            filename=path.name, valid=valid, duration=duration, resolution=res
+        )
 
 
 class RawVideo(BaseVideo):
@@ -143,9 +150,9 @@ class RawVideo(BaseVideo):
     ):
         """
         Create a new raw video from a file, using profile to extract
-        metadata if metadata is not explicitly given.
+        metadata if not given.
         """
-        meta = metadata or RawVideoMetadata._extract(path, profile)
+        meta = metadata or RawVideoMetadata._extract(path, profile=profile)
 
         super().__init__(
             path,
@@ -169,9 +176,78 @@ class RawVideo(BaseVideo):
 
         Attempts to read from the .yaml cache first, and creates it after
         processing if it doesn't exist.
-
-        TODO
         """
+
+
+class RawVideoCacheModel(BaseModel):
+    """
+    Represents a video cache file.
+    """
+
+    videos: list[RawVideoMetadata]
+
+    @classmethod
+    def _from_folder(cls, folder_path: Path) -> Self:
+        """
+        Get model from folder, using the existing cache if present.
+        """
+
+        cache_path = folder_path / RAW_CACHE_FILENAME
+
+        if cache_path.exists():
+            # load from cache
+            with cache_path.open() as fh:
+                model_dict = yaml.safe_load(fh)
+
+            return cls(model_dict)
+        else:
+            # get models from videos
+            video_models: list[RawVideoMetadata] = [
+                RawVideoMetadata._extract(p)
+                for p in folder_path.iterdir()
+                if not p.name.startswith(".")
+            ]
+
+            return cls(videos=video_models)
+
+
+class RawVideoCache:
+    folder_path: Path
+    videos: list[RawVideo]
+
+    __model: RawVideoCacheModel
+
+    def __init__(self, folder_path: Path):
+        assert folder_path.is_dir()
+
+        self.path = folder_path
+        self.__model = RawVideoCacheModel._from_folder(folder_path)
+
+        # create video instances from metadata
+        self.videos = [
+            RawVideo(self.path / m.filename, metadata=m)
+            for m in self.__model.videos
+        ]
+
+    @property
+    def valid_videos(self) -> list[RawVideo]:
+        """
+        Get a filtered list of raw videos.
+        """
+        return [v for v in self.videos if v.valid]
+
+    def write_cache(self):
+        """
+        Write .yaml cache of video listing.
+        """
+        cache_path = self.folder_path / RAW_CACHE_FILENAME
+        with cache_path.open("w") as fh:
+            yaml.safe_dump(
+                self.__model.model_dump(),
+                fh,
+                default_flow_style=False,
+                sort_keys=False,
+            )
 
 
 def _extract_duration(path: Path) -> tuple[float | None, bool]:
