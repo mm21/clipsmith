@@ -1,8 +1,9 @@
 import math
+import shutil
 from pathlib import Path
 
 from clipsmith.profiles import GarminDashcamMini2
-from clipsmith.video import RawVideo, RawVideoCache
+from clipsmith.video import RAW_CACHE_FILENAME, RawVideo, RawVideoCache
 
 SAMPLE_FILENAMES = [
     "sample-1.mp4",
@@ -40,9 +41,27 @@ def test_invalid(dashcam_mini2_path: Path):
     assert not sample.valid
 
 
-def test_cache(dashcam_mini2_path: Path):
-    cache = RawVideoCache(dashcam_mini2_path)
+def test_cache(dashcam_mini2_path: Path, tmp_path: Path):
+    # copy samples to temp path
+    for filename in SAMPLE_FILENAMES:
+        shutil.copy(dashcam_mini2_path / filename, tmp_path / filename)
 
+    cache = RawVideoCache(tmp_path)
+    _check_cache(cache)
+
+    # write cache file to temp path
+    cache.write()
+
+    # ensure it got written
+    cache_path = tmp_path / RAW_CACHE_FILENAME
+    assert cache_path.exists()
+
+    # read back from cache
+    RawVideoCache(tmp_path)
+    _check_cache(cache)
+
+
+def _check_cache(cache: RawVideoCache):
     assert len(cache.videos) == 4
     assert [v.path.name for v in cache.videos] == SAMPLE_FILENAMES
 

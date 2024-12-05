@@ -167,17 +167,6 @@ class RawVideo(BaseVideo):
     def valid(self) -> bool:
         return self.__metadata.valid
 
-    @classmethod
-    def from_folder(
-        self, path: Path, profile: BaseProfile | None = None
-    ) -> list[RawVideo]:
-        """
-        Get list of raw videos from a folder.
-
-        Attempts to read from the .yaml cache first, and creates it after
-        processing if it doesn't exist.
-        """
-
 
 class RawVideoCacheModel(BaseModel):
     """
@@ -199,12 +188,13 @@ class RawVideoCacheModel(BaseModel):
             with cache_path.open() as fh:
                 model_dict = yaml.safe_load(fh)
 
-            return cls(model_dict)
+            return cls(**model_dict)
         else:
             # get models from videos
+            files = sorted(folder_path.iterdir(), key=lambda p: p.name)
             video_models: list[RawVideoMetadata] = [
                 RawVideoMetadata._extract(p)
-                for p in folder_path.iterdir()
+                for p in files
                 if not p.name.startswith(".")
             ]
 
@@ -220,12 +210,12 @@ class RawVideoCache:
     def __init__(self, folder_path: Path):
         assert folder_path.is_dir()
 
-        self.path = folder_path
+        self.folder_path = folder_path
         self.__model = RawVideoCacheModel._from_folder(folder_path)
 
         # create video instances from metadata
         self.videos = [
-            RawVideo(self.path / m.filename, metadata=m)
+            RawVideo(self.folder_path / m.filename, metadata=m)
             for m in self.__model.videos
         ]
 
@@ -236,7 +226,7 @@ class RawVideoCache:
         """
         return [v for v in self.videos if v.valid]
 
-    def write_cache(self):
+    def write(self):
         """
         Write .yaml cache of video listing.
         """
