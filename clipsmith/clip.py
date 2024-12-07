@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from doit.task import Task
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from ._ffmpeg import FFMPEG_PATH
 from .video import BaseVideo
@@ -18,61 +18,81 @@ if TYPE_CHECKING:
 
 
 __all__ = [
-    "EndpointParams",
+    "OffsetParams",
     "DurationParams",
     "OperationParams",
     "Clip",
 ]
 
 
-class EndpointParams(BaseModel):
-    offset: float | None = None
-    """
-    Offset in seconds.
-    """
-
-    datetime: DateTime | None = None
-    """
-    Datetime.
-    """
+class BaseParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
 
-class DurationParams(BaseModel):
+class DurationParams(BaseParams):
     """
-    Specifies duration of new clip.
+    Specifies duration of new clip, which may entail trimming and/or scaling.
     """
 
     duration: float | None = None
     """
-    Explicitly provided duration.
+    Rescale duration to given value, using effective duration if 
+    input is trimmed.
     """
 
-    time_scale: float | None = None
+    scale: float | None = None
     """
-    Derive duration from source with provided scale factor.
-    """
-
-    start: EndpointParams | None = None
-    """
-    Start of output video relative to input.
+    Rescale duration with given scale factor, using effective duration if 
+    input is trimmed.
     """
 
-    end: EndpointParams | None = None
+    # TODO: handle datetime
+
+    trim_start: float | DateTime | None = None
     """
-    End of output video relative to input.
+    Start of output video relative to input, given as offset in seconds
+    or absolute datetime.
+    """
+
+    trim_end: float | DateTime | None = None
+    """
+    End of output video relative to input, given as offset in seconds
+    or absolute datetime.
     """
 
 
-class OperationParams(BaseModel):
+class ResolutionParams(BaseParams):
+    resolution: tuple[int, int] | None = None
+    """
+    Rescale resolution to given value, using effective input resolution
+    if input is trimmed.
+    """
+
+    scale: float | None = None
+    """
+    Rescale resolution with given scale factor.
+    """
+
+    trim: tuple[tuple[int, int], tuple[int, int]] | None = None
+    """
+    Area of input video to include in output, given as (upper left corner,
+    lower right corner).
+    """
+
+
+class OperationParams(BaseParams):
     """
     Specifies operations to create new clip.
     """
 
     duration_params: DurationParams | None = None
-
-    res_scale: float | tuple[int, int] | None = None
     """
-    Resolution scale factor or absolute resolution as `(x, y)`.
+    Params to adjust duration by scaling and/or trimming.
+    """
+
+    resolution_params: ResolutionParams | None = None
+    """
+    Params to adjust resolution by scaling and/or trimming.
     """
 
     audio: bool = True
@@ -121,6 +141,10 @@ class Clip(BaseVideo):
         Creates a clip associated with the given context.
         """
         assert len(inputs), f"No input videos passed"
+        assert all(
+            inputs[i].resolution == inputs[i - 1].resolution
+            for i, _ in enumerate(inputs)
+        ), f"Inconsistent input resolutions not currently supported: {inputs}"
 
         resolution = _get_resolution(operation, inputs[0])
 
@@ -197,7 +221,7 @@ class Clip(BaseVideo):
         time_scale = self.__get_time_scale()
 
         # get resolution scale, if any
-        res_scale = self.__operation.res_scale
+        has_res_scale = self.__has_res_scale()
 
         # get full path to all inputs
         input_paths = [i.path.resolve() for i in self.__inputs]
@@ -224,7 +248,7 @@ class Clip(BaseVideo):
             ]
 
         # these ffmpeg params are mutually exclusive
-        if time_scale or res_scale:
+        if time_scale or has_res_scale:
             # enable video filters (scaling, cropping, etc)
             codec_args = []
             filter_args = ["-filter:v"]
@@ -239,7 +263,7 @@ class Clip(BaseVideo):
         # resolution scaling
         res_args = (
             [f"scale={self.resolution[0]}:{self.resolution[1]}"]
-            if res_scale
+            if has_res_scale
             else []
         )
 
@@ -266,14 +290,19 @@ class Clip(BaseVideo):
         duration_orig = sum(i.duration for i in self.__inputs)
 
         if duration_params := self.__operation.duration_params:
-            if duration_params.time_scale:
+            if duration_params.scale:
                 # given time scale
-                return duration_params.time_scale
+                return duration_params.scale
             elif duration_params.duration:
                 # given duration
                 return duration_params.duration / duration_orig
 
         return None
+
+    def __has_res_scale(self) -> bool:
+        if resolution_params := self.__operation.resolution_params:
+            return bool(resolution_params.resolution or resolution_params.scale)
+        return False
 
 
 def _get_resolution(
@@ -283,17 +312,20 @@ def _get_resolution(
     Get target resolution based on the operation, or the first video in the
     inputs otherwise.
 
-    TODO: find max resolution from inputs
+    TODO: find max resolution from inputs instead of using first
     """
-    if res_scale := operation.res_scale:
-        pair = (
-            res_scale
-            if isinstance(res_scale, tuple)
-            else (
-                first.resolution[0] * res_scale,
-                first.resolution[1] * res_scale,
+    if resolution_params := operation.resolution_params:
+        if resolution := resolution_params.resolution:
+            pair = resolution
+        if scale := resolution_params.scale:
+            pair = (
+                scale
+                if isinstance(scale, tuple)
+                else (
+                    first.resolution[0] * scale,
+                    first.resolution[1] * scale,
+                )
             )
-        )
         return int(pair[0]), int(pair[1])
     else:
         return first.resolution

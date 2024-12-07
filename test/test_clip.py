@@ -1,6 +1,11 @@
 from pathlib import Path
 
-from clipsmith.clip import DurationParams, OperationParams
+from clipsmith.clip import (
+    Clip,
+    DurationParams,
+    OperationParams,
+    ResolutionParams,
+)
 from clipsmith.context import Context
 from clipsmith.profiles import GarminDashcamMini2
 from clipsmith.video import RawVideo
@@ -41,7 +46,7 @@ def test_time_scale(context: Context, output_dir: Path):
 
     inputs = _get_inputs(1)
     operation = OperationParams(
-        duration_params=DurationParams(time_scale=5.0),
+        duration_params=DurationParams(scale=5.0),
         audio=False,
     )
 
@@ -75,17 +80,28 @@ def test_res_scale(context: Context, output_dir: Path):
 
     input_video = _get_inputs(1)[0]
 
-    operation = OperationParams(res_scale=0.5)
+    def check(clip: Clip):
+        assert input_video.resolution == (
+            clip.resolution[0] * 2,
+            clip.resolution[1] * 2,
+        )
+        check_clip(clip, input_video.duration)
 
-    clip = context.forge(output_dir / "clip.mp4", input_video, operation)
-    context.doit()
+    # scale factor
+    operation = OperationParams(resolution_params=ResolutionParams(scale=0.5))
 
-    assert input_video.resolution == (
-        clip.resolution[0] * 2,
-        clip.resolution[1] * 2,
+    # absolute resolution
+    operation = OperationParams(
+        resolution_params=ResolutionParams(resolution=(480, 270))
     )
 
-    check_clip(clip, input_video.duration)
+    clip1 = context.forge(output_dir / "clip1.mp4", input_video, operation)
+    clip2 = context.forge(output_dir / "clip2.mp4", input_video, operation)
+
+    context.doit()
+
+    check(clip1)
+    check(clip2)
 
 
 def test_reforge(context: Context, output_dir: Path):
