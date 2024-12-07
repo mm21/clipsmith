@@ -94,8 +94,6 @@ class OperationParams(BaseParams):
     Whether to pass through audio.
     """
 
-    # TODO: evaluate if both scaling and trimming can coexist
-
     @property
     def _has_resolution_scale(self) -> bool:
         """
@@ -155,7 +153,11 @@ class OperationParams(BaseParams):
         Get -t arg, if any. Only needed if there is an end offset.
         """
         if self._trim_end:
-            if scale_duration := self.duration_params.scale_duration:
+            if scale_factor := self.duration_params.scale_factor:
+                return scale_factor * self._get_effective_duration(
+                    duration_orig
+                )
+            elif scale_duration := self.duration_params.scale_duration:
                 return scale_duration
             else:
                 return self._get_effective_duration(duration_orig)
@@ -367,7 +369,7 @@ class Clip(BaseVideo):
         # - need start_args to come before input_args to avoid freezing
 
         return (
-            [FFMPEG_PATH, "-loglevel", "error"]
+            [FFMPEG_PATH, "-loglevel", "fatal"]
             + start_args
             + input_args
             + dur_args
