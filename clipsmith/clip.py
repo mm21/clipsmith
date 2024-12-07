@@ -94,14 +94,16 @@ class OperationParams(BaseParams):
     Whether to pass through audio.
     """
 
-    @property
-    def _has_resolution_scale(self) -> bool:
+    def _get_effective_duration(self, duration_orig: float) -> float:
         """
-        Whether this operation scales resolution.
+        Get duration accounting for any trimming.
         """
-        return bool(
-            self.resolution_params.resolution or self.resolution_params.scale
-        )
+        if self.duration_params.trim_start or self.duration_params.trim_end:
+            start = self._trim_start or 0.0
+            end = self._trim_end or duration_orig
+            assert isinstance(start, float) and isinstance(end, float)
+            return end - start
+        return duration_orig
 
     def _get_resolution(self, first: BaseVideo) -> tuple[int, int]:
         """
@@ -127,7 +129,7 @@ class OperationParams(BaseParams):
 
     def _get_time_scale(self, duration_orig: float) -> float | None:
         """
-        Get time scale based on target duration and original duration.
+        Get time scale (if any) based on target duration and original duration.
         """
         if scale := self.duration_params.scale_factor:
             # given time scale
@@ -137,16 +139,15 @@ class OperationParams(BaseParams):
             return dur / self._get_effective_duration(duration_orig)
         return None
 
-    def _get_effective_duration(self, duration_orig: float) -> float:
+    def _get_res_scale(
+        self, clip_res: tuple[int, int]
+    ) -> tuple[int, int] | None:
         """
-        Get duration accounting for any trimming.
+        Get target resolution (if any).
         """
-        if self.duration_params.trim_start or self.duration_params.trim_end:
-            start = self._trim_start or 0.0
-            end = self._trim_end or duration_orig
-            assert isinstance(start, float) and isinstance(end, float)
-            return end - start
-        return duration_orig
+        if self.resolution_params.resolution or self.resolution_params.scale:
+            return clip_res
+        return None
 
     def _get_duration_arg(self, duration_orig: float) -> float | None:
         """
@@ -297,13 +298,14 @@ class Clip(BaseVideo):
         Get ffmpeg args.
         """
 
+        # get original duration based on inputs
         duration_orig = sum(i.duration for i in self.__inputs)
 
         # get time scale, if any
         time_scale = self.__operation._get_time_scale(duration_orig)
 
         # get resolution scale, if any
-        has_res_scale = self.__operation._has_resolution_scale
+        res_scale = self.__operation._get_res_scale(self.resolution)
 
         # get full path to all inputs
         input_paths = [i.path.resolve() for i in self.__inputs]
@@ -338,7 +340,7 @@ class Clip(BaseVideo):
         dur_args = ["-t", str(dur_arg)] if dur_arg else []
 
         # these ffmpeg params are mutually exclusive
-        if time_scale or has_res_scale:
+        if time_scale or res_scale:
             # enable video filters (scaling, cropping, etc)
             codec_args = []
             filter_args = ["-filter:v"]
@@ -351,11 +353,7 @@ class Clip(BaseVideo):
         time_args = [f"setpts={time_scale}*PTS"] if time_scale else []
 
         # resolution scaling
-        res_args = (
-            [f"scale={self.resolution[0]}:{self.resolution[1]}"]
-            if has_res_scale
-            else []
-        )
+        res_args = [f"scale={res_scale[0]}:{res_scale[1]}"] if res_scale else []
 
         # audio
         # TODO: properly handle audio scaling if time scaling enabled
@@ -366,7 +364,8 @@ class Clip(BaseVideo):
         #   cuts at the keyframe before the offset
         # - similarly, with end offset the output can be longer since ffmpeg
         #   cuts at the keyframe after the offset
-        # - need start_args to come before input_args to avoid freezing
+        # - need start_args to come before input_args to avoid frozen frames
+        #   at beginning of output
 
         return (
             [FFMPEG_PATH, "-loglevel", "fatal"]
