@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from doit.task import Task
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from ._ffmpeg import FFMPEG_PATH
 from .video import BaseVideo
@@ -34,30 +34,28 @@ class DurationParams(BaseParams):
     Specifies duration of new clip, which may entail trimming and/or scaling.
     """
 
-    duration: float | None = None
+    scale_factor: float | None = None
     """
-    Rescale duration to given value, using effective duration if 
-    input is trimmed.
-    """
-
-    scale: float | None = None
-    """
-    Rescale duration with given scale factor, using effective duration if 
-    input is trimmed.
+    Rescale duration with given scale factor.
     """
 
-    # TODO: handle datetime
+    scale_duration: float | None = None
+    """
+    Rescale duration to given value.
+    """
 
     trim_start: float | DateTime | None = None
     """
-    Start of output video relative to input, given as offset in seconds
-    or absolute datetime.
+    Start offset in input file(s), specified as:
+    - Number of seconds from the beginning
+    - Absolute datetime (for datetime-aware inputs)
     """
 
     trim_end: float | DateTime | None = None
     """
-    End of output video relative to input, given as offset in seconds
-    or absolute datetime.
+    End offset in input file(s), specified as:
+    - Number of seconds from the beginning
+    - Absolute datetime (for datetime-aware inputs)
     """
 
 
@@ -73,24 +71,20 @@ class ResolutionParams(BaseParams):
     Rescale resolution with given scale factor.
     """
 
-    trim: tuple[tuple[int, int], tuple[int, int]] | None = None
-    """
-    Area of input video to include in output, given as (upper left corner,
-    lower right corner).
-    """
-
 
 class OperationParams(BaseParams):
     """
     Specifies operations to create new clip.
     """
 
-    duration_params: DurationParams | None = None
+    duration_params: DurationParams = Field(default_factory=DurationParams)
     """
     Params to adjust duration by scaling and/or trimming.
     """
 
-    resolution_params: ResolutionParams | None = None
+    resolution_params: ResolutionParams = Field(
+        default_factory=ResolutionParams
+    )
     """
     Params to adjust resolution by scaling and/or trimming.
     """
@@ -100,14 +94,16 @@ class OperationParams(BaseParams):
     Whether to pass through audio.
     """
 
+    # TODO: evaluate if both scaling and trimming can coexist
+
     @property
     def _has_resolution_scale(self) -> bool:
         """
         Whether this operation scales resolution.
         """
-        if resolution_params := self.resolution_params:
-            return bool(resolution_params.resolution or resolution_params.scale)
-        return False
+        return bool(
+            self.resolution_params.resolution or self.resolution_params.scale
+        )
 
     def _get_resolution(self, first: BaseVideo) -> tuple[int, int]:
         """
@@ -116,33 +112,75 @@ class OperationParams(BaseParams):
 
         TODO: find max resolution from inputs instead of using first
         """
-        if resolution_params := self.resolution_params:
-            if resolution := resolution_params.resolution:
-                pair = resolution
-            if scale := resolution_params.scale:
-                pair = (
-                    scale
-                    if isinstance(scale, tuple)
-                    else (
-                        first.resolution[0] * scale,
-                        first.resolution[1] * scale,
-                    )
+        if resolution := self.resolution_params.resolution:
+            pair = resolution
+        elif scale := self.resolution_params.scale:
+            pair = (
+                scale
+                if isinstance(scale, tuple)
+                else (
+                    first.resolution[0] * scale,
+                    first.resolution[1] * scale,
                 )
-            return int(pair[0]), int(pair[1])
+            )
         else:
-            return first.resolution
+            pair = first.resolution
+        return int(pair[0]), int(pair[1])
 
     def _get_time_scale(self, duration_orig: float) -> float | None:
         """
-        Get target duration and time scale.
+        Get time scale based on target duration and original duration.
         """
-        if duration_params := self.duration_params:
-            if duration_params.scale:
-                # given time scale
-                return duration_params.scale
-            elif duration_params.duration:
-                # given duration
-                return duration_params.duration / duration_orig
+        if scale := self.duration_params.scale_factor:
+            # given time scale
+            return scale
+        elif dur := self.duration_params.scale_duration:
+            # given duration
+            return dur / self._get_effective_duration(duration_orig)
+        return None
+
+    def _get_effective_duration(self, duration_orig: float) -> float:
+        """
+        Get duration accounting for any trimming.
+        """
+        if self.duration_params.trim_start or self.duration_params.trim_end:
+            start = self._trim_start or 0.0
+            end = self._trim_end or duration_orig
+            assert isinstance(start, float) and isinstance(end, float)
+            return end - start
+        return duration_orig
+
+    def _get_duration_arg(self, duration_orig: float) -> float | None:
+        """
+        Get -t arg, if any. Only needed if there is an end offset.
+        """
+        if self._trim_end:
+            if scale_duration := self.duration_params.scale_duration:
+                return scale_duration
+            else:
+                return self._get_effective_duration(duration_orig)
+        return None
+
+    @property
+    def _trim_start(self) -> float | None:
+        """
+        Get start offset.
+        """
+        # TODO: convert datetime to offset
+        if start := self.duration_params.trim_start:
+            assert isinstance(start, float)
+            return start
+        return None
+
+    @property
+    def _trim_end(self) -> float | None:
+        """
+        Get end offset.
+        """
+        # TODO: convert datetime to offset
+        if end := self.duration_params.trim_end:
+            assert isinstance(end, float)
+            return end
         return None
 
 
@@ -255,17 +293,12 @@ class Clip(BaseVideo):
     def __get_args(self) -> list[str]:
         """
         Get ffmpeg args.
-
-        TODO: handle offset from video start, if given
-        - subtract offset from duration
-        - add offset to datetime_start
-        - use -t arg to trim time
         """
 
+        duration_orig = sum(i.duration for i in self.__inputs)
+
         # get time scale, if any
-        time_scale = self.__operation._get_time_scale(
-            sum(i.duration for i in self.__inputs)
-        )
+        time_scale = self.__operation._get_time_scale(duration_orig)
 
         # get resolution scale, if any
         has_res_scale = self.__operation._has_resolution_scale
@@ -294,6 +327,14 @@ class Clip(BaseVideo):
                 temp.name,
             ]
 
+        # start offset
+        trim_start = self.__operation._trim_start
+        start_args = ["-ss", str(trim_start)] if trim_start else []
+
+        # duration
+        dur_arg = self.__operation._get_duration_arg(duration_orig)
+        dur_args = ["-t", str(dur_arg)] if dur_arg else []
+
         # these ffmpeg params are mutually exclusive
         if time_scale or has_res_scale:
             # enable video filters (scaling, cropping, etc)
@@ -318,9 +359,18 @@ class Clip(BaseVideo):
         # TODO: properly handle audio scaling if time scaling enabled
         audio_args = [] if self.__operation.audio else ["-an"]
 
+        # notes:
+        # - with start offset, the output can be longer since ffmpeg
+        #   cuts at the keyframe before the offset
+        # - similarly, with end offset the output can be longer since ffmpeg
+        #   cuts at the keyframe after the offset
+        # - need start_args to come before input_args to avoid freezing
+
         return (
             [FFMPEG_PATH, "-loglevel", "error"]
+            + start_args
             + input_args
+            + dur_args
             + codec_args
             + filter_args
             + time_args

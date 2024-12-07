@@ -46,7 +46,7 @@ def test_time_scale(context: Context, output_dir: Path):
 
     inputs = _get_inputs(1)
     operation = OperationParams(
-        duration_params=DurationParams(scale=5.0),
+        duration_params=DurationParams(scale_factor=5.0),
         audio=False,
     )
 
@@ -63,7 +63,7 @@ def test_time_duration(context: Context, output_dir: Path):
 
     inputs = _get_inputs(1)
     operation = OperationParams(
-        duration_params=DurationParams(duration=5.0),
+        duration_params=DurationParams(scale_duration=5.0),
         audio=False,
     )
 
@@ -71,6 +71,45 @@ def test_time_duration(context: Context, output_dir: Path):
     context.doit()
 
     check_clip(clip, 5.0)
+
+
+def test_time_offsets(context: Context, output_dir: Path):
+    """
+    Trim input using start/time offsets.
+    """
+
+    START = 1.0
+    END = 2.0
+
+    inputs = _get_inputs(3)
+
+    operation1 = OperationParams(
+        duration_params=DurationParams(
+            trim_start=START,
+            trim_end=END,
+        )
+    )
+    operation2 = OperationParams(
+        duration_params=DurationParams(
+            trim_start=START,
+        )
+    )
+    operation3 = OperationParams(
+        duration_params=DurationParams(
+            trim_end=END,
+        )
+    )
+
+    clip1 = context.forge(output_dir / "clip1.mp4", inputs, operation1)
+    clip2 = context.forge(output_dir / "clip2.mp4", inputs, operation2)
+    clip3 = context.forge(output_dir / "clip3.mp4", inputs, operation3)
+
+    context.doit()
+
+    # trimming is not as precise
+    check_clip(clip1, 1.0, rel_tol=0.2)
+    check_clip(clip2, 2.0, rel_tol=0.2)
+    check_clip(clip3, 2.0, rel_tol=0.2)
 
 
 def test_res_scale(context: Context, output_dir: Path):
@@ -117,7 +156,7 @@ def test_reforge(context: Context, output_dir: Path):
     # rescale
     clip2 = clip.reforge(
         output_dir / "clip2.mp4",
-        OperationParams(duration_params=DurationParams(duration=5.0)),
+        OperationParams(duration_params=DurationParams(scale_duration=5.0)),
     )
 
     context.doit()

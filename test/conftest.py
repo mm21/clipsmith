@@ -61,7 +61,9 @@ def context() -> Context:
     return Context()
 
 
-def check_clip(clip: Clip, duration_expect: float | None = None):
+def check_clip(
+    clip: Clip, duration_expect: float | None = None, rel_tol: float = 0.1
+):
     """
     Verify the clip with approximate expected duration.
     """
@@ -76,7 +78,7 @@ def check_clip(clip: Clip, duration_expect: float | None = None):
 
     # compare approx duration
     if duration_expect is not None:
-        assert math.isclose(clip.duration, duration_expect, rel_tol=0.1)
+        assert math.isclose(clip.duration, duration_expect, rel_tol=rel_tol)
 
     # compare resolution
     assert clip.resolution == video.resolution
