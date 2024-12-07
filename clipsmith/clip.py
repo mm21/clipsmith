@@ -100,6 +100,51 @@ class OperationParams(BaseParams):
     Whether to pass through audio.
     """
 
+    @property
+    def _has_resolution_scale(self) -> bool:
+        """
+        Whether this operation scales resolution.
+        """
+        if resolution_params := self.resolution_params:
+            return bool(resolution_params.resolution or resolution_params.scale)
+        return False
+
+    def _get_resolution(self, first: BaseVideo) -> tuple[int, int]:
+        """
+        Get target resolution based on this operation, or the first video in the
+        inputs otherwise.
+
+        TODO: find max resolution from inputs instead of using first
+        """
+        if resolution_params := self.resolution_params:
+            if resolution := resolution_params.resolution:
+                pair = resolution
+            if scale := resolution_params.scale:
+                pair = (
+                    scale
+                    if isinstance(scale, tuple)
+                    else (
+                        first.resolution[0] * scale,
+                        first.resolution[1] * scale,
+                    )
+                )
+            return int(pair[0]), int(pair[1])
+        else:
+            return first.resolution
+
+    def _get_time_scale(self, duration_orig: float) -> float | None:
+        """
+        Get target duration and time scale.
+        """
+        if duration_params := self.duration_params:
+            if duration_params.scale:
+                # given time scale
+                return duration_params.scale
+            elif duration_params.duration:
+                # given duration
+                return duration_params.duration / duration_orig
+        return None
+
 
 class Clip(BaseVideo):
     """
@@ -132,7 +177,7 @@ class Clip(BaseVideo):
 
     def __init__(
         self,
-        path: Path,
+        output: Path,
         inputs: list[BaseVideo],
         operation: OperationParams,
         context: Context,
@@ -146,10 +191,10 @@ class Clip(BaseVideo):
             for i, _ in enumerate(inputs)
         ), f"Inconsistent input resolutions not currently supported: {inputs}"
 
-        resolution = _get_resolution(operation, inputs[0])
+        resolution = operation._get_resolution(inputs[0])
 
         super().__init__(
-            path,
+            output,
             resolution=resolution,
             datetime_start=inputs[0].datetime_start,
         )
@@ -218,10 +263,12 @@ class Clip(BaseVideo):
         """
 
         # get time scale, if any
-        time_scale = self.__get_time_scale()
+        time_scale = self.__operation._get_time_scale(
+            sum(i.duration for i in self.__inputs)
+        )
 
         # get resolution scale, if any
-        has_res_scale = self.__has_res_scale()
+        has_res_scale = self.__operation._has_resolution_scale
 
         # get full path to all inputs
         input_paths = [i.path.resolve() for i in self.__inputs]
@@ -281,51 +328,3 @@ class Clip(BaseVideo):
             + audio_args
             + [self.__out_path]
         )
-
-    def __get_time_scale(self) -> float | None:
-        """
-        Get target duration and time scale based on operation.
-        """
-
-        duration_orig = sum(i.duration for i in self.__inputs)
-
-        if duration_params := self.__operation.duration_params:
-            if duration_params.scale:
-                # given time scale
-                return duration_params.scale
-            elif duration_params.duration:
-                # given duration
-                return duration_params.duration / duration_orig
-
-        return None
-
-    def __has_res_scale(self) -> bool:
-        if resolution_params := self.__operation.resolution_params:
-            return bool(resolution_params.resolution or resolution_params.scale)
-        return False
-
-
-def _get_resolution(
-    operation: OperationParams, first: BaseVideo
-) -> tuple[int, int]:
-    """
-    Get target resolution based on the operation, or the first video in the
-    inputs otherwise.
-
-    TODO: find max resolution from inputs instead of using first
-    """
-    if resolution_params := operation.resolution_params:
-        if resolution := resolution_params.resolution:
-            pair = resolution
-        if scale := resolution_params.scale:
-            pair = (
-                scale
-                if isinstance(scale, tuple)
-                else (
-                    first.resolution[0] * scale,
-                    first.resolution[1] * scale,
-                )
-            )
-        return int(pair[0]), int(pair[1])
-    else:
-        return first.resolution
