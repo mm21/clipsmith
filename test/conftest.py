@@ -61,16 +61,22 @@ def context() -> Context:
     return Context()
 
 
-def check_clip(clip: Clip, duration_expect: float):
+def check_clip(clip: Clip, duration_expect: float | None = None):
     """
     Verify the clip with approximate expected duration.
     """
 
     assert clip.path.is_file()
 
-    # read raw video and compare
+    # read raw video
     video = RawVideo(clip.path)
+
+    # compare duration read from raw video
     assert math.isclose(video.duration, clip.duration)
 
-    # compare against approx duration
-    assert math.isclose(clip.duration, duration_expect, rel_tol=0.1)
+    # compare approx duration
+    if duration_expect is not None:
+        assert math.isclose(clip.duration, duration_expect, rel_tol=0.1)
+
+    # compare resolution
+    assert clip.resolution == video.resolution

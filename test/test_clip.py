@@ -31,7 +31,7 @@ def test_concat_folder(
     clip = context.forge(output_dir / "clip.mp4", dashcam_mini2_path)
     context.doit()
 
-    check_clip(clip, clip.duration)
+    check_clip(clip)
 
 
 def test_time_scale(context: Context, output_dir: Path):
@@ -72,6 +72,20 @@ def test_res_scale(context: Context, output_dir: Path):
     """
     Rescale resolution.
     """
+
+    input_video = _get_inputs(1)[0]
+
+    operation = OperationParams(res_scale=0.5)
+
+    clip = context.forge(output_dir / "clip.mp4", input_video, operation)
+    context.doit()
+
+    assert input_video.resolution == (
+        clip.resolution[0] * 2,
+        clip.resolution[1] * 2,
+    )
+
+    check_clip(clip, input_video.duration)
 
 
 def test_reforge(context: Context, output_dir: Path):

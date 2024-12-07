@@ -70,9 +70,9 @@ class OperationParams(BaseModel):
 
     duration_params: DurationParams | None = None
 
-    res_scale: float | int | str | None = None
+    res_scale: float | tuple[int, int] | None = None
     """
-    Resolution scale factor or absolute resolution as `x:y`.
+    Resolution scale factor or absolute resolution as `(x, y)`.
     """
 
     audio: bool = True
@@ -286,16 +286,14 @@ def _get_resolution(
     TODO: find max resolution from inputs
     """
     if res_scale := operation.res_scale:
-        if isinstance(res_scale, str):
-            split = res_scale.split(":")
-            assert len(split) == 2, f"Invalid resolution: {res_scale}"
-
-            x, y = map(int, split)
-        else:
-            x, y = int(first.resolution[0] / res_scale), int(
-                first.resolution[1] / res_scale
+        pair = (
+            res_scale
+            if isinstance(res_scale, tuple)
+            else (
+                first.resolution[0] * res_scale,
+                first.resolution[1] * res_scale,
             )
-
-        return (x, y)
+        )
+        return int(pair[0]), int(pair[1])
     else:
         return first.resolution
