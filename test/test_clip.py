@@ -1,6 +1,10 @@
 from pathlib import Path
+from typing import Any
+
+from pytest import raises
 
 from clipsmith.clip import (
+    BaseParams,
     Clip,
     DurationParams,
     OperationParams,
@@ -152,11 +156,13 @@ def test_res_scale(context: Context, output_dir: Path):
         check_clip(clip, input_video.duration)
 
     # scale factor
-    operation = OperationParams(resolution_params=ResolutionParams(scale=0.5))
+    operation = OperationParams(
+        resolution_params=ResolutionParams(scale_factor=0.5)
+    )
 
     # absolute resolution
     operation = OperationParams(
-        resolution_params=ResolutionParams(resolution=(480, 270))
+        resolution_params=ResolutionParams(scale_resolution=(480, 270))
     )
 
     clip1 = context.forge(output_dir / "clip1.mp4", input_video, operation)
@@ -188,6 +194,25 @@ def test_reforge(context: Context, output_dir: Path):
 
     check_clip(clip, sum(i.duration for i in inputs))
     check_clip(clip2, 5.0)
+
+
+def test_params():
+    """
+    Test params validation.
+    """
+
+    invalid_params: list[tuple[BaseParams, dict[str, Any]]] = [
+        (DurationParams, {"scale_factor": 1.0, "scale_duration": 1.0}),
+        (
+            ResolutionParams,
+            {"scale_factor": 1.0, "scale_resolution": (640, 480)},
+        ),
+    ]
+
+    for params in invalid_params:
+        with raises(ValueError):
+            params_cls, kwargs = params
+            params_cls(**kwargs)
 
 
 def _get_inputs(count: int) -> list[RawVideo]:

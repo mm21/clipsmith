@@ -58,18 +58,37 @@ class DurationParams(BaseParams):
     - Absolute datetime (for datetime-aware inputs)
     """
 
+    def model_post_init(self, __context):
+        if self.scale_factor and self.scale_duration:
+            raise ValueError(
+                f"Cannot provide both scale factor and duration: scale_factor={self.scale_factor}, scale_duration={self.scale_duration}"
+            )
+
+        return super().model_post_init(__context)
+
 
 class ResolutionParams(BaseParams):
-    resolution: tuple[int, int] | None = None
     """
-    Rescale resolution to given value, using effective input resolution
-    if input is trimmed.
+    Specifies resolution of new clip.
     """
 
-    scale: float | None = None
+    scale_factor: float | None = None
     """
     Rescale resolution with given scale factor.
     """
+
+    scale_resolution: tuple[int, int] | None = None
+    """
+    Rescale resolution to given value.
+    """
+
+    def model_post_init(self, __context):
+        if self.scale_factor and self.scale_resolution:
+            raise ValueError(
+                f"Cannot provide both scale factor and resolution: scale_factor={self.scale_factor}, scale_resolution={self.scale_resolution}"
+            )
+
+        return super().model_post_init(__context)
 
 
 class OperationParams(BaseParams):
@@ -94,6 +113,11 @@ class OperationParams(BaseParams):
     Whether to pass through audio.
     """
 
+    def model_post_init(self, __context):
+        # validate input args
+
+        return super().model_post_init(__context)
+
     def _get_effective_duration(self, duration_orig: float) -> float:
         """
         Get duration accounting for any trimming.
@@ -112,17 +136,13 @@ class OperationParams(BaseParams):
 
         TODO: find max resolution from inputs instead of using first
         """
-        if resolution := self.resolution_params.resolution:
-            pair = resolution
-        elif scale := self.resolution_params.scale:
+        if scale_factor := self.resolution_params.scale_factor:
             pair = (
-                scale
-                if isinstance(scale, tuple)
-                else (
-                    first.resolution[0] * scale,
-                    first.resolution[1] * scale,
-                )
+                first.resolution[0] * scale_factor,
+                first.resolution[1] * scale_factor,
             )
+        elif resolution := self.resolution_params.scale_resolution:
+            pair = resolution
         else:
             pair = first.resolution
         return int(pair[0]), int(pair[1])
@@ -131,12 +151,12 @@ class OperationParams(BaseParams):
         """
         Get time scale (if any) based on target duration and original duration.
         """
-        if scale := self.duration_params.scale_factor:
+        if scale_factor := self.duration_params.scale_factor:
             # given time scale
-            return scale
-        elif dur := self.duration_params.scale_duration:
+            return scale_factor
+        elif duration := self.duration_params.scale_duration:
             # given duration
-            return dur / self._get_effective_duration(duration_orig)
+            return duration / self._get_effective_duration(duration_orig)
         return None
 
     def _get_res_scale(
@@ -145,7 +165,10 @@ class OperationParams(BaseParams):
         """
         Get target resolution (if any).
         """
-        if self.resolution_params.resolution or self.resolution_params.scale:
+        if (
+            self.resolution_params.scale_resolution
+            or self.resolution_params.scale_factor
+        ):
             return clip_res
         return None
 
