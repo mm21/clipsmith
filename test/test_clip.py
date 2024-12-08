@@ -29,6 +29,14 @@ def test_concat(context: Context, output_dir: Path):
 
     check_clip(clip, sum(i.duration for i in inputs))
 
+    # verify __repr__
+    print(
+        f"Checked clip: {clip}, datetime_start={clip.datetime_start}, datetime_end={clip.datetime_end}, datetime_range={clip.datetime_range}"
+    )
+
+    # verify creation of clip w/existing file
+    context.forge(clip.path, inputs[0].path)
+
 
 def test_concat_folder(
     context: Context, output_dir: Path, dashcam_mini2_path: Path
@@ -156,17 +164,17 @@ def test_res_scale(context: Context, output_dir: Path):
         check_clip(clip, input_video.duration)
 
     # scale factor
-    operation = OperationParams(
+    operation1 = OperationParams(
         resolution_params=ResolutionParams(scale_factor=0.5)
     )
 
     # absolute resolution
-    operation = OperationParams(
+    operation2 = OperationParams(
         resolution_params=ResolutionParams(scale_resolution=(480, 270))
     )
 
-    clip1 = context.forge(output_dir / "clip1.mp4", input_video, operation)
-    clip2 = context.forge(output_dir / "clip2.mp4", input_video, operation)
+    clip1 = context.forge(output_dir / "clip1.mp4", input_video, operation1)
+    clip2 = context.forge(output_dir / "clip2.mp4", input_video, operation2)
 
     context.doit()
 
@@ -196,9 +204,9 @@ def test_reforge(context: Context, output_dir: Path):
     check_clip(clip2, 5.0)
 
 
-def test_params():
+def test_invalid(context: Context, output_dir: Path):
     """
-    Test params validation.
+    Test validations.
     """
 
     invalid_params: list[tuple[BaseParams, dict[str, Any]]] = [
@@ -209,10 +217,17 @@ def test_params():
         ),
     ]
 
+    # invalid params
     for params in invalid_params:
         with raises(ValueError):
             params_cls, kwargs = params
             params_cls(**kwargs)
+
+    clip = context.forge(output_dir / "clip.mp4", _get_inputs(1))
+
+    # try to access duration when not set yet
+    with raises(ValueError):
+        clip.duration
 
 
 def _get_inputs(count: int) -> list[RawVideo]:
