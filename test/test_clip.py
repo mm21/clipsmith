@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -39,13 +40,17 @@ def test_concat(context: Context, output_dir: Path):
 
 
 def test_concat_folder(
-    context: Context, output_dir: Path, dashcam_mini2_path: Path
+    context: Context, output_dir: Path, dashcam_mini2_path: Path, tmp_path: Path
 ):
     """
     Concatenate all inputs from folder.
     """
 
-    clip = context.forge(output_dir / "clip.mp4", dashcam_mini2_path)
+    # copy samples to temp path, with subfolder to test recursion
+    samples_root = shutil.copytree(dashcam_mini2_path, tmp_path / "samples")
+    shutil.copytree(dashcam_mini2_path, samples_root / "nested")
+
+    clip = context.forge(output_dir / "clip.mp4", samples_root)
     context.doit()
 
     check_clip(clip)
@@ -223,11 +228,15 @@ def test_invalid(context: Context, output_dir: Path):
             params_cls, kwargs = params
             params_cls(**kwargs)
 
-    clip = context.forge(output_dir / "clip.mp4", _get_inputs(1))
+    # invoke error when invoking doit task (invalid filename)
+    clip = context.forge(output_dir / "EXPECTED-ERROR:", _get_inputs(1))
 
     # try to access duration when not set yet
     with raises(ValueError):
         clip.duration
+
+    with raises(ChildProcessError):
+        context.doit()
 
 
 def _get_inputs(count: int) -> list[RawVideo]:

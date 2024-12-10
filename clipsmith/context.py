@@ -85,6 +85,8 @@ class Context:
     def doit(self):
         """
         Invoke tasks to build all clips.
+
+        :raises ChildProcessError: If any ffmpeg invocations failed
         """
 
         tasks = self.__tasks

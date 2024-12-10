@@ -298,7 +298,13 @@ class Clip(BaseVideo):
             args = self.__get_args()
 
             logging.debug(f"Invoking ffmpeg: {' '.join(args)}")
-            subprocess.check_call(args)
+
+            try:
+                subprocess.check_call(args)
+            except subprocess.CalledProcessError:
+                # doit will catch any exceptions and print them, so gracefully
+                # fail the task
+                return False
 
             # get duration from newly written file
             assert self.path.exists()
