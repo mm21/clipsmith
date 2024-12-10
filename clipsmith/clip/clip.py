@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from doit.task import Task
 
 from .._ffmpeg import get_ffmpeg
-from ..video import BaseVideo
+from ..video.base import BaseVideo
 from .operation import OperationParams
 
 if TYPE_CHECKING:

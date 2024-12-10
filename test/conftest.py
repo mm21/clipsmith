@@ -7,7 +7,7 @@ from pytest import FixtureRequest, fixture
 
 from clipsmith.clip.clip import Clip
 from clipsmith.context import Context
-from clipsmith.video import RawVideo
+from clipsmith.video.raw import RawVideo
 
 pytest_plugins = ["pytest_powerpack"]
 

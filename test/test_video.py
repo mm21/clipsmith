@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 
 from clipsmith.profiles import GarminDashcamMini2
-from clipsmith.video import RAW_CACHE_FILENAME, RawVideo, RawVideoCache
+from clipsmith.video.raw import RAW_CACHE_FILENAME, RawVideo, RawVideoCache
 
 from .conftest import DASHCAM_MINI2_FILENAMES
 

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..video import BaseVideo
+from ..video.raw import BaseVideo
 
 if TYPE_CHECKING:
     pass

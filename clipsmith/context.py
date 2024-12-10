@@ -12,7 +12,8 @@ from doit.task import Task
 
 from .clip.clip import Clip
 from .clip.operation import OperationParams
-from .video import BaseVideo, RawVideo, RawVideoCache
+from .video.base import BaseVideo
+from .video.raw import RawVideo, RawVideoCache
 
 
 class Context:
