@@ -83,13 +83,6 @@ class Clip(BaseVideo):
         self.__operation = operation
         self.__task = self.__prepare_task(inputs)
 
-    @property
-    def __out_path(self) -> str:
-        """
-        Get absolute path to output file.
-        """
-        return str(self.path.resolve())
-
     def reforge(self, output: Path, operation: OperationParams) -> Clip:
         """
         Creates a new clip from this one using the indicated operations.
@@ -101,6 +94,13 @@ class Clip(BaseVideo):
         Get the doit task previously created.
         """
         return self.__task
+
+    @property
+    def __out_path(self) -> str:
+        """
+        Get absolute path to output file.
+        """
+        return str(self.path.resolve())
 
     def __prepare_task(
         self,
