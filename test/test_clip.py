@@ -61,16 +61,18 @@ def test_time_scale(context: Context, output_dir: Path):
     Rescale time based on scale factor.
     """
 
+    SCALE_FACTOR = 2.0
+
     inputs = _get_inputs(1)
     operation = OperationParams(
-        duration_params=DurationParams(scale_factor=5.0),
+        duration_params=DurationParams(scale_factor=SCALE_FACTOR),
         audio=False,
     )
 
     clip = context.forge(output_dir / "clip.mp4", inputs, operation)
     context.doit()
 
-    check_clip(clip, sum(i.duration for i in inputs) * 5)
+    check_clip(clip, sum(i.duration for i in inputs) * SCALE_FACTOR)
 
 
 def test_time_duration(context: Context, output_dir: Path):
@@ -98,7 +100,10 @@ def test_time_offsets(context: Context, output_dir: Path):
     START = 1.0
     END = 2.0
 
+    SCALE_FACTOR = 2.0
+
     inputs = _get_inputs(3)
+    dur_approx = sum(i.duration for i in inputs)
 
     operation1 = OperationParams(
         duration_params=DurationParams(
@@ -106,35 +111,46 @@ def test_time_offsets(context: Context, output_dir: Path):
             trim_end=END,
         )
     )
+    dur1_approx = END - START
+
     operation2 = OperationParams(
         duration_params=DurationParams(
             trim_start=START,
         )
     )
+    dur2_approx = dur_approx - START
+
     operation3 = OperationParams(
         duration_params=DurationParams(
             trim_end=END,
         )
     )
+    dur3_approx = END
+
     operation4 = OperationParams(
         duration_params=DurationParams(
-            scale_duration=5.0,
+            scale_duration=SCALE_FACTOR,
             trim_start=START,
             trim_end=END,
         )
     )
+    dur4_approx = (END - START) * SCALE_FACTOR
+
     operation5 = OperationParams(
         duration_params=DurationParams(
-            scale_factor=5.0,
+            scale_factor=SCALE_FACTOR,
             trim_start=START,
         )
     )
+    dur5_approx = (dur_approx - START) * SCALE_FACTOR
+
     operation6 = OperationParams(
         duration_params=DurationParams(
-            scale_duration=5.0,
+            scale_factor=SCALE_FACTOR,
             trim_end=END,
         )
     )
+    dur6_approx = END * SCALE_FACTOR
 
     clip1 = context.forge(output_dir / "clip1.mp4", inputs, operation1)
     clip2 = context.forge(output_dir / "clip2.mp4", inputs, operation2)
@@ -146,12 +162,14 @@ def test_time_offsets(context: Context, output_dir: Path):
     context.doit()
 
     # trimming is not as precise
-    check_clip(clip1, 1.0, rel_tol=0.2)
-    check_clip(clip2, 2.0, rel_tol=0.2)
-    check_clip(clip3, 2.0, rel_tol=0.2)
-    check_clip(clip4, 5.0, rel_tol=0.2)
-    check_clip(clip5, 10.0, rel_tol=0.2)
-    check_clip(clip6, 5.0, rel_tol=0.2)
+    rel_tol = 0.2
+
+    check_clip(clip1, dur1_approx, rel_tol=rel_tol)
+    check_clip(clip2, dur2_approx, rel_tol=rel_tol)
+    check_clip(clip3, dur3_approx, rel_tol=rel_tol)
+    check_clip(clip4, dur4_approx, rel_tol=rel_tol)
+    check_clip(clip5, dur5_approx, rel_tol=rel_tol)
+    check_clip(clip6, dur6_approx, rel_tol=rel_tol)
 
 
 def test_res_scale(context: Context, output_dir: Path):
