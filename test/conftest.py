@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pytest import FixtureRequest, fixture
 
-from clipsmith.clip import Clip
+from clipsmith.clip.clip import Clip
 from clipsmith.context import Context
 from clipsmith.video import RawVideo
 

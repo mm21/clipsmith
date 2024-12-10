@@ -10,7 +10,8 @@ from doit.cmd_base import Command, TaskLoader2
 from doit.doit_cmd import DoitMain
 from doit.task import Task
 
-from .clip import Clip, OperationParams
+from .clip.clip import Clip
+from .clip.operation import OperationParams
 from .video import BaseVideo, RawVideo, RawVideoCache
 
 

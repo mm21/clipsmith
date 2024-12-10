@@ -5,16 +5,16 @@ from typing import Any
 
 from pytest import raises
 
-from clipsmith.clip import (
-    BaseParams,
+from clipsmith import (
     Clip,
+    Context,
     DurationParams,
     OperationParams,
+    RawVideo,
     ResolutionParams,
 )
-from clipsmith.context import Context
+from clipsmith.clip.operation import BaseParams
 from clipsmith.profiles import GarminDashcamMini2
-from clipsmith.video import RawVideo
 
 from .conftest import DASHCAM_MINI2_FILENAMES, DASHCAM_MINI2_PATH, check_clip
 
