@@ -1,4 +1,5 @@
 import shutil
+import time
 from pathlib import Path
 from typing import Any
 
@@ -227,7 +228,7 @@ def test_reforge(context: Context, output_dir: Path):
     check_clip(clip2, 5.0)
 
 
-def test_invalid(context: Context, output_dir: Path):
+def test_validate(context: Context, output_dir: Path):
     """
     Test validations.
     """
@@ -246,15 +247,21 @@ def test_invalid(context: Context, output_dir: Path):
             params_cls, kwargs = params
             params_cls(**kwargs)
 
-    # invoke error when invoking doit task (invalid filename)
     clip = context.forge(output_dir / "EXPECTED-ERROR:", _get_inputs(1))
 
     # try to access duration when not set yet
     with raises(ValueError):
         clip.duration
 
+    # invoke error when invoking doit task (invalid filename)
     with raises(ChildProcessError):
         context.doit()
+
+    # try to lookup nonexistent command
+    from clipsmith._ffmpeg import _get_command
+
+    with raises(RuntimeError):
+        _get_command(f"nonexistent-cmd-{time.time()}")
 
 
 def _get_inputs(count: int) -> list[RawVideo]:
