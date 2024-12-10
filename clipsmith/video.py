@@ -3,14 +3,13 @@ from __future__ import annotations
 import subprocess
 from abc import ABC
 from datetime import datetime as DateTime
-from datetime import timedelta as TimeDelta
 from pathlib import Path
 from typing import Self
 
 import yaml
 from pydantic import BaseModel
 
-from ._ffmpeg import FFPROBE_PATH
+from ._ffmpeg import get_ffprobe
 from .profile import BaseProfile, DefaultProfile
 
 __all__ = [
@@ -80,16 +79,19 @@ class BaseVideo(ABC):
         """
         Getter for timezone-unaware end datetime, if applicable.
         """
-        if start := self.__datetime_start:
-            return start + TimeDelta(seconds=self.duration)
+        # if start := self.__datetime_start:
+        #    return start + TimeDelta(seconds=self.duration)
         return None
 
     @property
     def datetime_range(self) -> tuple[DateTime, DateTime] | None:
-        if start := self.datetime_start:
-            end = self.datetime_end
-            assert end is not None
-            return (start, end)
+        """
+        Getter for timezone-unaware datetime range, if applicable.
+        """
+        # if start := self.datetime_start:
+        #    end = self.datetime_end
+        #    assert end is not None
+        #    return (start, end)
         return None
 
     def _extract_duration(self):
@@ -247,7 +249,7 @@ def _extract_duration(path: Path) -> tuple[float | None, bool]:
     assert path.exists()
 
     cmd = [
-        FFPROBE_PATH,
+        get_ffprobe(),
         "-v",
         "error",
         "-show_entries",
@@ -279,7 +281,7 @@ def _extract_res(path: Path) -> tuple[tuple[int, int] | None, bool]:
     """
 
     cmd = [
-        FFPROBE_PATH,
+        get_ffprobe(),
         "-v",
         "error",
         "-select_streams",

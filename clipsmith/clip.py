@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from doit.task import Task
 from pydantic import BaseModel, ConfigDict, Field
 
-from ._ffmpeg import FFMPEG_PATH
+from ._ffmpeg import get_ffmpeg
 from .video import BaseVideo
 
 if TYPE_CHECKING:
@@ -112,11 +112,6 @@ class OperationParams(BaseParams):
     """
     Whether to pass through audio.
     """
-
-    def model_post_init(self, __context):
-        # validate input args
-
-        return super().model_post_init(__context)
 
     def _get_effective_duration(self, duration_orig: float) -> float:
         """
@@ -391,7 +386,7 @@ class Clip(BaseVideo):
         #   at beginning of output
 
         return (
-            [FFMPEG_PATH, "-loglevel", "fatal"]
+            [get_ffmpeg(), "-loglevel", "fatal"]
             + start_args
             + input_args
             + dur_args
