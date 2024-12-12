@@ -66,7 +66,7 @@ def test_time_scale(context: Context, output_dir: Path):
 
     inputs = _get_inputs(1)
     operation = OperationParams(
-        duration_params=DurationParams(scale_factor=SCALE_FACTOR),
+        duration_params=DurationParams(scale=SCALE_FACTOR),
         audio=False,
     )
 
@@ -83,7 +83,7 @@ def test_time_duration(context: Context, output_dir: Path):
 
     inputs = _get_inputs(1)
     operation = OperationParams(
-        duration_params=DurationParams(scale_duration=5.0),
+        duration_params=DurationParams(target=5.0),
         audio=False,
     )
 
@@ -130,7 +130,7 @@ def test_time_offsets(context: Context, output_dir: Path):
 
     operation4 = OperationParams(
         duration_params=DurationParams(
-            scale_duration=SCALE_FACTOR,
+            target=SCALE_FACTOR,
             trim_start=START,
             trim_end=END,
         )
@@ -139,7 +139,7 @@ def test_time_offsets(context: Context, output_dir: Path):
 
     operation5 = OperationParams(
         duration_params=DurationParams(
-            scale_factor=SCALE_FACTOR,
+            scale=SCALE_FACTOR,
             trim_start=START,
         )
     )
@@ -147,7 +147,7 @@ def test_time_offsets(context: Context, output_dir: Path):
 
     operation6 = OperationParams(
         duration_params=DurationParams(
-            scale_factor=SCALE_FACTOR,
+            scale=SCALE_FACTOR,
             trim_end=END,
         )
     )
@@ -188,13 +188,11 @@ def test_res_scale(context: Context, output_dir: Path):
         check_clip(clip, input_video.duration)
 
     # scale factor
-    operation1 = OperationParams(
-        resolution_params=ResolutionParams(scale_factor=0.5)
-    )
+    operation1 = OperationParams(resolution_params=ResolutionParams(scale=0.5))
 
     # absolute resolution
     operation2 = OperationParams(
-        resolution_params=ResolutionParams(scale_resolution=(480, 270))
+        resolution_params=ResolutionParams(target=(480, 270))
     )
 
     clip1 = context.forge(output_dir / "clip1.mp4", input_video, operation1)
@@ -219,7 +217,7 @@ def test_reforge(context: Context, output_dir: Path):
     # rescale
     clip2 = clip.reforge(
         output_dir / "clip2.mp4",
-        OperationParams(duration_params=DurationParams(scale_duration=5.0)),
+        OperationParams(duration_params=DurationParams(target=5.0)),
     )
 
     context.doit()
@@ -234,10 +232,10 @@ def test_validate(context: Context, output_dir: Path):
     """
 
     invalid_params: list[tuple[BaseParams, dict[str, Any]]] = [
-        (DurationParams, {"scale_factor": 1.0, "scale_duration": 1.0}),
+        (DurationParams, {"scale": 1.0, "target": 1.0}),
         (
             ResolutionParams,
-            {"scale_factor": 1.0, "scale_resolution": (640, 480)},
+            {"scale": 1.0, "target": (640, 480)},
         ),
     ]
 

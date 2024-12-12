@@ -27,16 +27,6 @@ class DurationParams(BaseParams):
     Specifies duration of new clip, which may entail trimming and/or scaling.
     """
 
-    scale_factor: float | None = None
-    """
-    Rescale duration with given scale factor.
-    """
-
-    scale_duration: float | None = None
-    """
-    Rescale duration to given value.
-    """
-
     trim_start: float | DateTime | None = None
     """
     Start offset in input file(s), specified as:
@@ -51,10 +41,20 @@ class DurationParams(BaseParams):
     - Absolute datetime (for datetime-aware inputs)
     """
 
+    scale: float | None = None
+    """
+    Rescale duration with given scale factor.
+    """
+
+    target: float | None = None
+    """
+    Rescale duration to given value.
+    """
+
     def model_post_init(self, __context):
-        if self.scale_factor and self.scale_duration:
+        if self.scale and self.target:
             raise ValueError(
-                f"Cannot provide both scale factor and duration: scale_factor={self.scale_factor}, scale_duration={self.scale_duration}"
+                f"Cannot provide both scale factor and target duration: scale={self.scale}, target={self.target}"
             )
 
         return super().model_post_init(__context)
@@ -65,20 +65,20 @@ class ResolutionParams(BaseParams):
     Specifies resolution of new clip.
     """
 
-    scale_factor: float | None = None
+    scale: float | None = None
     """
     Rescale resolution with given scale factor.
     """
 
-    scale_resolution: tuple[int, int] | None = None
+    target: tuple[int, int] | None = None
     """
     Rescale resolution to given value.
     """
 
     def model_post_init(self, __context):
-        if self.scale_factor and self.scale_resolution:
+        if self.scale and self.target:
             raise ValueError(
-                f"Cannot provide both scale factor and resolution: scale_factor={self.scale_factor}, scale_resolution={self.scale_resolution}"
+                f"Cannot provide both scale factor and resolution: scale_factor={self.scale}, target={self.target}"
             )
 
         return super().model_post_init(__context)
@@ -106,6 +106,9 @@ class OperationParams(BaseParams):
     Whether to pass through audio.
     """
 
+    # TODO: option to overwite output file if out of date, suppressing
+    # interactive input by ffmpeg
+
     def _get_effective_duration(self, duration_orig: float) -> float:
         """
         Get duration accounting for any trimming.
@@ -124,12 +127,12 @@ class OperationParams(BaseParams):
 
         TODO: find max resolution from inputs instead of using first
         """
-        if scale_factor := self.resolution_params.scale_factor:
+        if scale := self.resolution_params.scale:
             pair = (
-                first.resolution[0] * scale_factor,
-                first.resolution[1] * scale_factor,
+                first.resolution[0] * scale,
+                first.resolution[1] * scale,
             )
-        elif resolution := self.resolution_params.scale_resolution:
+        elif resolution := self.resolution_params.target:
             pair = resolution
         else:
             pair = first.resolution
@@ -139,10 +142,10 @@ class OperationParams(BaseParams):
         """
         Get time scale (if any) based on target duration and original duration.
         """
-        if scale_factor := self.duration_params.scale_factor:
+        if scale := self.duration_params.scale:
             # given time scale
-            return scale_factor
-        elif duration := self.duration_params.scale_duration:
+            return scale
+        elif duration := self.duration_params.target:
             # given duration
             return duration / self._get_effective_duration(duration_orig)
         return None
@@ -153,10 +156,7 @@ class OperationParams(BaseParams):
         """
         Get target resolution (if any).
         """
-        if (
-            self.resolution_params.scale_resolution
-            or self.resolution_params.scale_factor
-        ):
+        if self.resolution_params.target or self.resolution_params.scale:
             return clip_res
         return None
 
@@ -165,12 +165,12 @@ class OperationParams(BaseParams):
         Get -t arg, if any. Only needed if there is an end offset.
         """
         if self._trim_end:
-            if scale_factor := self.duration_params.scale_factor:
+            if scale_factor := self.duration_params.scale:
                 return scale_factor * self._get_effective_duration(
                     duration_orig
                 )
-            elif scale_duration := self.duration_params.scale_duration:
-                return scale_duration
+            elif target := self.duration_params.target:
+                return target
             else:
                 return self._get_effective_duration(duration_orig)
         return None
