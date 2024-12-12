@@ -37,6 +37,11 @@ app = typer.Typer(
 )
 
 
+@app.callback()
+def callback():
+    pass
+
+
 @app.command()
 def forge(
     trim_start: float
@@ -46,7 +51,7 @@ def forge(
     dur_scale: float
     | None = typer.Option(None, help="Scale duration by scale factor"),
     dur_target: float
-    | None = typer.Option(None, help="Scale duration to target"),
+    | None = typer.Option(None, help="Scale duration to target (seconds)"),
     res_scale: float
     | None = typer.Option(None, help="Scale resolution by scale factor"),
     res_target: str
@@ -63,7 +68,7 @@ def forge(
     output: Path = typer.Argument(help="Path to output video"),
 ):
     """
-    Creates a new clip from one or more video files.
+    Creates a video from one or more videos, with optional operations applied
     """
 
     def convert_res(res: str) -> tuple[int, int]:
