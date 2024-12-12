@@ -59,9 +59,10 @@ def forge(
         None, help="Scale resolution to target as WIDTH:HEIGHT"
     ),
     audio: bool = typer.Option(
-        False,
+        True,
         help="Whether to pass through audio to output (not yet supported with time scaling)",
     ),
+    verbose: bool = typer.Option(False, help="Whether to enable debug logging"),
     inputs: list[Path] = typer.Argument(
         help="One or more paths to input video(s) or folder(s) of video(s)"
     ),
@@ -70,6 +71,12 @@ def forge(
     """
     Creates a video from one or more videos, with optional operations applied
     """
+
+    # TODO: find out why this is not working
+    if verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+        for handler in logging.getLogger().handlers:
+            handler.setLevel(logging.DEBUG)
 
     def convert_res(res: str) -> tuple[int, int]:
         split = res.split(":")
@@ -91,13 +98,15 @@ def forge(
         ),
         resolution_params=ResolutionParams(
             scale=res_scale,
-            res_target=res_target_,
+            target=res_target_,
         ),
         audio=audio,
     )
 
     # setup forge task
     context.forge(output, inputs, operation=operation)
+
+    logging.info(f"Forging: {[str(p) for p in inputs]} -> {str(output)}")
 
     # do it
     context.doit()

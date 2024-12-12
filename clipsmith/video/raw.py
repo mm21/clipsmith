@@ -18,6 +18,10 @@ __all__ = [
 
 RAW_CACHE_FILENAME = ".clipsmith_cache.yaml"
 
+VIDEO_SUFFIXES = [
+    ".mp4",
+]
+
 
 class RawVideoMetadata(BaseModel):
     """
@@ -113,7 +117,9 @@ class RawVideoCacheModel(BaseModel):
             video_models: list[RawVideoMetadata] = [
                 RawVideoMetadata._extract(p)
                 for p in files
-                if p.is_file() and not p.name.startswith(".")
+                if p.is_file()
+                and not p.name.startswith(".")
+                and p.suffix.lower() in VIDEO_SUFFIXES
             ]
 
             return cls(videos=video_models)
