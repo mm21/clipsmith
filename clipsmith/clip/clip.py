@@ -113,7 +113,7 @@ class Clip(BaseVideo):
         def action():
             args = self.__get_args()
 
-            logging.debug(f"Invoking ffmpeg: {' '.join(args)}")
+            logging.info(f"Invoking ffmpeg: '{' '.join(args)}'")
 
             try:
                 subprocess.check_call(args)
@@ -131,6 +131,7 @@ class Clip(BaseVideo):
             [action],
             file_dep=[str(i.path) for i in inputs],
             targets=[self.__out_path],
+            verbosity=2,
         )
 
     def __get_args(self) -> list[str]:
@@ -208,7 +209,7 @@ class Clip(BaseVideo):
         #   at beginning of output
 
         return (
-            [get_ffmpeg(), "-loglevel", "fatal"]
+            [get_ffmpeg(), "-loglevel", self.__operation.log_level]
             + start_args
             + input_args
             + dur_args

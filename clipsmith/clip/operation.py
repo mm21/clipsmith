@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime as DateTime
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -15,7 +16,20 @@ __all__ = [
     "OperationParams",
     "DurationParams",
     "ResolutionParams",
+    "LogLevel",
 ]
+
+
+class LogLevel(StrEnum):
+    QUIET = "quiet"
+    PANIC = "panic"
+    FATAL = "fatal"
+    ERROR = "error"
+    WARNING = "warning"
+    INFO = "info"
+    VERBOSE = "verbose"
+    DEBUG = "debug"
+    TRACE = "trace"
 
 
 class BaseParams(BaseModel):
@@ -104,6 +118,11 @@ class OperationParams(BaseParams):
     audio: bool = True
     """
     Whether to pass through audio.
+    """
+
+    log_level: LogLevel = LogLevel.INFO
+    """
+    Log level passed to ffmpeg.
     """
 
     # TODO: option to overwite output file if out of date, suppressing

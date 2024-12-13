@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime as DateTime
 from pathlib import Path
 from typing import Self
@@ -106,6 +107,8 @@ class RawVideoCacheModel(BaseModel):
         cache_path = folder_path / RAW_CACHE_FILENAME
 
         if cache_path.exists():
+            logging.info(f"Loading inputs from cache: '{cache_path}'")
+
             # load from cache
             with cache_path.open() as fh:
                 model_dict = yaml.safe_load(fh)
@@ -113,6 +116,7 @@ class RawVideoCacheModel(BaseModel):
             return cls(**model_dict)
         else:
             # get models from videos
+            logging.info(f"Checking inputs from folder: '{folder_path}'")
             files = sorted(folder_path.iterdir(), key=lambda p: p.name)
             video_models: list[RawVideoMetadata] = [
                 RawVideoMetadata._extract(p)
@@ -121,6 +125,12 @@ class RawVideoCacheModel(BaseModel):
                 and not p.name.startswith(".")
                 and p.suffix.lower() in VIDEO_SUFFIXES
             ]
+
+            for model in video_models:
+                if not model.valid:
+                    logging.info(
+                        f"-> Skipping invalid input: '{folder_path / model.filename}'"
+                    )
 
             return cls(videos=video_models)
 
@@ -142,6 +152,12 @@ class RawVideoCache:
             RawVideo(self.folder_path / m.filename, metadata=m)
             for m in self.__model.videos
         ]
+
+        valid_videos = self.valid_videos
+
+        logging.info(
+            f"-> Found inputs: {len(valid_videos)} valid, {len(self.videos) - len(valid_videos)} invalid"
+        )
 
     @property
     def valid_videos(self) -> list[RawVideo]:

@@ -3,6 +3,7 @@ CLI entry point.
 """
 
 import logging
+import sys
 from pathlib import Path
 
 import rich.traceback
@@ -10,7 +11,7 @@ import typer
 from rich.console import Console
 from rich.logging import RichHandler
 
-from ..clip import DurationParams, OperationParams, ResolutionParams
+from ..clip import DurationParams, LogLevel, OperationParams, ResolutionParams
 from ..context import Context
 
 rich.traceback.install(show_locals=True)
@@ -21,11 +22,10 @@ logging.basicConfig(
     handlers=[
         RichHandler(
             rich_tracebacks=True,
-            console=Console(),
+            console=Console(highlight=False),
             show_level=True,
             show_time=True,
             show_path=False,
-            markup=True,
         )
     ],
 )
@@ -42,8 +42,12 @@ def callback():
     pass
 
 
-@app.command()
+@app.command(no_args_is_help=True)
 def forge(
+    inputs: list[Path] = typer.Argument(
+        help="One or more paths to input video(s) or folder(s) of video(s)"
+    ),
+    output: Path = typer.Argument(help="Path to output video"),
     trim_start: float
     | None = typer.Option(None, help="Start offset (seconds) in input file(s)"),
     trim_end: float
@@ -62,21 +66,13 @@ def forge(
         True,
         help="Whether to pass through audio to output (not yet supported with time scaling)",
     ),
-    verbose: bool = typer.Option(False, help="Whether to enable debug logging"),
-    inputs: list[Path] = typer.Argument(
-        help="One or more paths to input video(s) or folder(s) of video(s)"
+    log_level: LogLevel = typer.Option(
+        LogLevel.INFO, help="Log level passed to ffmpeg"
     ),
-    output: Path = typer.Argument(help="Path to output video"),
 ):
     """
     Creates a video from one or more videos, with optional operations applied
     """
-
-    # TODO: find out why this is not working
-    if verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-        for handler in logging.getLogger().handlers:
-            handler.setLevel(logging.DEBUG)
 
     def convert_res(res: str) -> tuple[int, int]:
         split = res.split(":")
@@ -101,15 +97,22 @@ def forge(
             target=res_target_,
         ),
         audio=audio,
+        log_level=log_level,
     )
+
+    inputs_str = ", ".join([f"'{str(p)}'" for p in inputs])
+    output_str = f"'{str(output)}'"
+    logging.info(f"Forging: {inputs_str} -> {output_str}")
 
     # setup forge task
     context.forge(output, inputs, operation=operation)
 
-    logging.info(f"Forging: {[str(p) for p in inputs]} -> {str(output)}")
-
     # do it
-    context.doit()
+    try:
+        context.doit()
+    except ChildProcessError as e:
+        logging.error(f"Failed to run doit tasks")
+        sys.exit(1)
 
 
 # TODO: after profiles implemented

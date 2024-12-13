@@ -109,4 +109,4 @@ class Context:
 
         ret = doit_main.run(cmd)
         if ret != 0:
-            raise ChildProcessError("Failed to run doit tasks")
+            raise ChildProcessError
