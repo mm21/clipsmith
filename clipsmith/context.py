@@ -61,6 +61,10 @@ class Context:
                 cache = RawVideoCache(path)
                 videos += cache.valid_videos
 
+                # write cache if it doesn't already exist
+                if operation.cache and not cache.cache_path.is_file():
+                    cache.write()
+
                 # add videos from subfolders
                 folders = [
                     p

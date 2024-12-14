@@ -120,7 +120,12 @@ class OperationParams(BaseParams):
     Whether to pass through audio.
     """
 
-    log_level: LogLevel = LogLevel.INFO
+    cache: bool = False
+    """
+    Whether to store a cache of video metadata in input folders.
+    """
+
+    log_level: LogLevel = LogLevel.FATAL
     """
     Log level passed to ffmpeg.
     """

@@ -66,6 +66,10 @@ def forge(
         True,
         help="Whether to pass through audio to output (not yet supported with time scaling)",
     ),
+    cache: bool = typer.Option(
+        False,
+        help=f"Whether to store a cache of video metadata in input folders",
+    ),
     log_level: LogLevel = typer.Option(
         LogLevel.INFO, help="Log level passed to ffmpeg"
     ),
@@ -97,6 +101,7 @@ def forge(
             target=res_target_,
         ),
         audio=audio,
+        cache=cache,
         log_level=log_level,
     )
 

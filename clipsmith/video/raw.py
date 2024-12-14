@@ -166,12 +166,19 @@ class RawVideoCache:
         """
         return [v for v in self.videos if v.valid]
 
+    @property
+    def cache_path(self) -> Path:
+        """
+        Path to this cache's .yaml file.
+        """
+        return self.folder_path / RAW_CACHE_FILENAME
+
     def write(self):
         """
         Write .yaml cache of video listing.
         """
-        cache_path = self.folder_path / RAW_CACHE_FILENAME
-        with cache_path.open("w") as fh:
+        logging.info(f"Writing cache: {self.cache_path}")
+        with self.cache_path.open("w") as fh:
             yaml.safe_dump(
                 self.__model.model_dump(),
                 fh,
