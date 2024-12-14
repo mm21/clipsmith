@@ -51,6 +51,8 @@ class Context:
         :param operation: Parameters to apply to input
         """
 
+        operation_ = operation or OperationParams()
+
         def process_input(path: Path) -> list[BaseVideo]:
             if path.is_file():
                 return [RawVideo(path)]
@@ -62,7 +64,7 @@ class Context:
                 videos += cache.valid_videos
 
                 # write cache if it doesn't already exist
-                if operation.cache and not cache.cache_path.is_file():
+                if operation_.cache and not cache.cache_path.is_file():
                     cache.write()
 
                 # add videos from subfolders
@@ -87,7 +89,7 @@ class Context:
                 assert i.exists()
                 input_videos += process_input(i)
 
-        clip = Clip(output, input_videos, operation or OperationParams(), self)
+        clip = Clip(output, input_videos, operation_, self)
         self.__tasks.append(clip._get_task())
 
         return clip
