@@ -126,6 +126,8 @@ class Clip(BaseVideo):
             assert self.path.exists()
             self._extract_duration()
 
+            logging.info(f"Forged clip: '{self.__out_path}'")
+
         return Task(
             str(self.path),
             [action],
