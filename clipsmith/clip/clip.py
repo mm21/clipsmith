@@ -58,7 +58,8 @@ class Clip(BaseVideo):
         context: Context,
     ):
         """
-        Creates a clip associated with the given context.
+        Creates a clip associated with the given context. Assumes all inputs
+        are valid, if applicable.
         """
         assert len(inputs), f"No input videos passed"
         assert all(

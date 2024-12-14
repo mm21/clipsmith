@@ -18,7 +18,9 @@ SAMPLES_PATH = TEST_ROOT / "_samples"
 DASHCAM_MINI2_PATH = SAMPLES_PATH / "garmin-dashcam-mini2"
 
 DASHCAM_MINI2_FILENAMES = [
-    p.name for p in sorted(DASHCAM_MINI2_PATH.iterdir(), key=lambda p: p.name)
+    p.name
+    for p in sorted(DASHCAM_MINI2_PATH.iterdir(), key=lambda p: p.name)
+    if not p.name.startswith(".")
 ]
 
 logging.basicConfig(level=logging.DEBUG)

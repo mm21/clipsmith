@@ -54,6 +54,9 @@ class Context:
         operation_ = operation or OperationParams()
 
         def process_input(path: Path) -> list[BaseVideo]:
+            """
+            Return list of all videos, valid or invalid.
+            """
             if path.is_file():
                 return [RawVideo(path)]
             else:
@@ -89,7 +92,14 @@ class Context:
                 assert i.exists()
                 input_videos += process_input(i)
 
-        clip = Clip(output, input_videos, operation_, self)
+        valid_videos = [
+            v
+            for v in input_videos
+            if (not isinstance(v, RawVideo))
+            or (isinstance(v, RawVideo) and v.valid)
+        ]
+
+        clip = Clip(output, valid_videos, operation_, self)
         self.__tasks.append(clip._get_task())
 
         return clip
