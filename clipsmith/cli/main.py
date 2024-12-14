@@ -78,14 +78,13 @@ def forge(
     Creates a video from one or more videos, with optional operations applied
     """
 
-    def convert_res(res: str) -> tuple[int, int]:
+    def parse_res(res: str) -> tuple[int, int]:
         split = res.split(":")
-        if len(split) != 2:
-            raise ValueError(f"Unable to parse resolution: {res}")
+        assert len(split) == 2, f"Invalid resolution: {res}"
         return int(split[0]), int(split[1])
 
     # convert resolution target as typer assumes there can be multiple tuples
-    res_target_ = None if res_target is None else convert_res(res_target)
+    res_target_ = None if res_target is None else parse_res(res_target)
 
     # setup context and operation
     context = Context()
@@ -107,7 +106,7 @@ def forge(
 
     inputs_str = ", ".join([f"'{str(p)}'" for p in inputs])
     output_str = f"'{str(output)}'"
-    logging.info(f"Forging: {inputs_str} -> {output_str}")
+    logging.info(f"Forging:\n{inputs_str}\n  ->\n{output_str}")
 
     # setup forge task
     context.forge(output, inputs, operation=operation)

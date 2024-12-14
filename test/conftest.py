@@ -7,6 +7,7 @@ from pytest import FixtureRequest, fixture
 
 from clipsmith.clip.clip import Clip
 from clipsmith.context import Context
+from clipsmith.profiles import GarminDashcamMini2
 from clipsmith.video.raw import RawVideo
 
 pytest_plugins = ["pytest_powerpack"]
@@ -82,3 +83,13 @@ def check_clip(
 
     # compare resolution
     assert clip.resolution == video.resolution
+
+
+def get_inputs(count: int) -> list[RawVideo]:
+    """
+    Get the provided number of inputs as raw videos.
+    """
+    return [
+        RawVideo(DASHCAM_MINI2_PATH / file, profile=GarminDashcamMini2)
+        for file in DASHCAM_MINI2_FILENAMES[:count]
+    ]

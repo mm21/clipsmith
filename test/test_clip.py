@@ -10,13 +10,11 @@ from clipsmith import (
     Context,
     DurationParams,
     OperationParams,
-    RawVideo,
     ResolutionParams,
 )
 from clipsmith.clip.operation import BaseParams
-from clipsmith.profiles import GarminDashcamMini2
 
-from .conftest import DASHCAM_MINI2_FILENAMES, DASHCAM_MINI2_PATH, check_clip
+from .conftest import check_clip, get_inputs
 
 
 def test_concat(context: Context, output_dir: Path):
@@ -24,7 +22,7 @@ def test_concat(context: Context, output_dir: Path):
     Forge a new clip by concatenating inputs.
     """
 
-    inputs = _get_inputs(2)
+    inputs = get_inputs(2)
 
     clip = context.forge(output_dir / "clip.mp4", inputs)
     context.doit()
@@ -64,7 +62,7 @@ def test_time_scale(context: Context, output_dir: Path):
 
     SCALE_FACTOR = 2.0
 
-    inputs = _get_inputs(1)
+    inputs = get_inputs(1)
     operation = OperationParams(
         duration_params=DurationParams(scale=SCALE_FACTOR),
         audio=False,
@@ -81,7 +79,7 @@ def test_time_duration(context: Context, output_dir: Path):
     Rescale time based on target duration.
     """
 
-    inputs = _get_inputs(1)
+    inputs = get_inputs(1)
     operation = OperationParams(
         duration_params=DurationParams(target=5.0),
         audio=False,
@@ -103,7 +101,7 @@ def test_time_offsets(context: Context, output_dir: Path):
 
     SCALE_FACTOR = 2.0
 
-    inputs = _get_inputs(3)
+    inputs = get_inputs(3)
     dur_approx = sum(i.duration for i in inputs)
 
     operation1 = OperationParams(
@@ -178,7 +176,7 @@ def test_res_scale(context: Context, output_dir: Path):
     Rescale resolution.
     """
 
-    input_video = _get_inputs(1)[0]
+    input_video = get_inputs(1)[0]
 
     def check(clip: Clip):
         assert input_video.resolution == (
@@ -209,7 +207,7 @@ def test_reforge(context: Context, output_dir: Path):
     Reforge a forged clip.
     """
 
-    inputs = _get_inputs(2)
+    inputs = get_inputs(2)
 
     # concatenate
     clip = context.forge(output_dir / "clip.mp4", inputs)
@@ -245,7 +243,7 @@ def test_validate(context: Context, output_dir: Path):
             params_cls, kwargs = params
             params_cls(**kwargs)
 
-    clip = context.forge(output_dir / "EXPECTED-ERROR:", _get_inputs(1))
+    clip = context.forge(output_dir / "EXPECTED-ERROR:", get_inputs(1))
 
     # try to access duration when not set yet
     with raises(ValueError):
@@ -260,13 +258,3 @@ def test_validate(context: Context, output_dir: Path):
 
     with raises(RuntimeError):
         _get_command(f"nonexistent-cmd-{time.time()}")
-
-
-def _get_inputs(count: int) -> list[RawVideo]:
-    """
-    Get the provided number of inputs as raw videos.
-    """
-    return [
-        RawVideo(DASHCAM_MINI2_PATH / file, profile=GarminDashcamMini2)
-        for file in DASHCAM_MINI2_FILENAMES[:count]
-    ]
