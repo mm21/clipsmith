@@ -1,4 +1,4 @@
-import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -136,6 +136,30 @@ def task_doc() -> Task:
     Generate CLI documentation in .md format.
     """
 
+    def include(md_path: Path):
+        """
+        Include this md file in <README.md>.
+        """
+        assert md_path.exists()
+
+        readme_path = Path("README.md")
+        match_start = f"<!-- include {md_path} -->"
+        match_end = "<!-- include end -->"
+
+        # read the content to include
+        content = md_path.read_text()
+
+        # read README.md
+        readme = readme_path.read_text()
+
+        # find and replace between the markers
+        pattern = f"{re.escape(match_start)}.*?{re.escape(match_end)}"
+        replacement = f"{match_start}\n{content}\n{match_end}"
+        new_readme = re.sub(pattern, replacement, readme, flags=re.DOTALL)
+
+        # write back
+        readme_path.write_text(new_readme)
+
     def gen_cli():
         # list of commands for which to generate help docs
         CMDS = [
@@ -153,8 +177,13 @@ def task_doc() -> Task:
             stdout = subprocess.check_output(args, text=True)
             markdown = f"```\n{stdout}\n```"
 
-            with (doc_path / filename).open("w") as fh:
+            md_path = doc_path / filename
+
+            with md_path.open("w") as fh:
                 fh.write(markdown)
+
+            # replace in readme
+            include(md_path)
 
     return Task(
         "doc",
