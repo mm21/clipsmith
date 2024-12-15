@@ -175,7 +175,7 @@ def task_doc() -> Task:
             filename = f"{'-'.join(cmd) or 'main'}.md"
 
             stdout = subprocess.check_output(args, text=True)
-            markdown = f"```\n{stdout}\n```"
+            markdown = f"```\n{stdout.strip()}\n```\n"
 
             md_path = doc_path / filename
 

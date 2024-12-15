@@ -1,6 +1,5 @@
 ```
-                                                                                                                                                              
- Usage: clipsmith forge [OPTIONS] INPUTS... OUTPUT                                                                                                            
+Usage: clipsmith forge [OPTIONS] INPUTS... OUTPUT                                                                                                            
                                                                                                                                                               
  Create a video from one or more videos with specified operations applied                                                                                     
                                                                                                                                                               
@@ -20,6 +19,4 @@
 │ --log-level                   TEXT   Log level passed to ffmpeg [default: info]                                                                            │
 │ --help                               Show this message and exit.                                                                                           │
 ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-
-
 ```
