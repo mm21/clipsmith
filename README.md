@@ -10,21 +10,21 @@ Utility to work with video clips, especially suited for dashcam footage
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 - [ClipSmith](#clipsmith)
-  - [Motivation](#motivation)
+  - [Overview](#overview)
   - [Getting started](#getting-started)
   - [CLI](#cli)
     - [Forging clips](#forging-clips)
       - [Concatenating](#concatenating)
       - [Trimming](#trimming)
       - [Rescaling](#rescaling)
-    - [Additional features](#additional-features)
+    - [Input folder caching](#input-folder-caching)
   - [API](#api)
     - [Context](#context)
     - [Clips](#clips)
 
-## Motivation
+## Overview
 
-This project leverages `ffmpeg` and task orchestration via `doit` to provide a user-friendly utility to work with video clips. Clips can be readily concatenated, trimmed, and/or rescaled in a single command. This is especially useful for working with dashcam footage wherein there are many short video files to manage.
+This project leverages [FFmpeg](https://ffmpeg.org/) and [doit](https://pydoit.org/) to provide a user-friendly utility for working with video clips and orchestrating pipelines of video editing operations. Clips can be readily concatenated, trimmed, and/or rescaled in a single command. This is especially useful for working with dashcam footage wherein there are many short video files to manage.
 
 ## Getting started
 
@@ -51,7 +51,7 @@ pip install clipsmith
 
 ### Forging clips
 
-The command `clipsmith forge` is the entry point for creating new clips.
+The command `clipsmith forge` is the entry point for creating new clips. Operations for concatenation, duration trimming, duration scaling, resolution scaling, and audio can be specified together in one command.
 
 <!-- include doc/cli/forge.md -->
 ```
@@ -91,6 +91,8 @@ clipsmith forge clip1.mp4 clip2.mp4 combined.mp4
 clipsmith forge input_folder/ combined.mp4
 ```
 
+For any folders passed as inputs, their contents are recursively scanned depth-first to aggregate input videos.
+
 #### Trimming
 
 Trim clips using start and end time offsets:
@@ -111,31 +113,29 @@ clipsmith forge --trim-end 5.0 input.mp4 output.mp4
 Rescale video duration and resolution:
 
 ```bash
-# Speed up video by factor (e.g. 2x faster)
+# Speed up by factor (e.g. 2x faster)
 clipsmith forge --dur-scale 2.0 --no-audio input.mp4 output.mp4
 
-# Slow down video by factor (e.g. 2x slower)
+# Slow down by factor (e.g. 2x slower)
 clipsmith forge --dur-scale 0.5 --no-audio input.mp4 output.mp4
 
-# Set specific target duration in seconds
+# Rescale duration to specific value in seconds
 clipsmith forge --dur-target 60.0 --no-audio input.mp4 output.mp4
 
-# Scale to specific resolution
-clipsmith forge --res-target 480:270 input.mp4 output.mp4
-
-# Scale resolution by factor
+# Rescale resolution by factor
 clipsmith forge --res-scale 0.5 input.mp4 output.mp4
+
+# Rescale resolution to specific value as WIDTH:HEIGHT
+clipsmith forge --res-target 480:270 input.mp4 output.mp4
 ```
 
 <!-- TODO:
 ### Clip playbooks
 -->
 
-### Additional features
+### Input folder caching
 
-Additional features include:
-- Automatic caching of video metadata in folders via `--cache`
-- Directory recursion (depth-first) for concatenation
+For input folders with many videos, the process of scanning and validating input files can be time-consuming. In such cases, pass `--cache` to cache video metadata per folder. In case of multiple or interrupted invocations, ClipSmith will use this cache to quickly begin its work.
 
 ## API
 
