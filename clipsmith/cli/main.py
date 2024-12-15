@@ -11,7 +11,7 @@ import typer
 from rich.console import Console
 from rich.logging import RichHandler
 
-from ..clip import DurationParams, LogLevel, OperationParams, ResolutionParams
+from ..clip import DurationParams, OperationParams, ResolutionParams
 from ..context import Context
 
 rich.traceback.install(show_locals=True)
@@ -78,9 +78,7 @@ def forge(
         False,
         help=f"Whether to store a cache of video metadata in input folders",
     ),
-    log_level: LogLevel = typer.Option(
-        LogLevel.INFO, help="Log level passed to ffmpeg"
-    ),
+    log_level: str = typer.Option("info", help="Log level passed to ffmpeg"),
 ):
     """
     Create a video from one or more videos with specified operations applied

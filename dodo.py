@@ -1,3 +1,5 @@
+import os
+import subprocess
 from pathlib import Path
 
 from doit.task import Task
@@ -124,6 +126,39 @@ def task_format() -> Task:
             " ".join(black_args),
             " ".join(toml_sort_args),
         ],
+        targets=[],
+        file_dep=[],
+    )
+
+
+def task_doc() -> Task:
+    """
+    Generate CLI documentation in .md format.
+    """
+
+    def gen_cli():
+        # list of commands for which to generate help docs
+        CMDS = [
+            ["forge"],
+        ]
+
+        doc_path = Path("doc/cli")
+        doc_path.mkdir(parents=True, exist_ok=True)
+
+        # generate .md for each command
+        for cmd in CMDS:
+            args = ["clipsmith"] + cmd + ["--help"]
+            filename = f"{'-'.join(cmd) or 'main'}.md"
+
+            stdout = subprocess.check_output(args, text=True)
+            markdown = f"```\n{stdout}\n```"
+
+            with (doc_path / filename).open("w") as fh:
+                fh.write(markdown)
+
+    return Task(
+        "doc",
+        actions=[gen_cli],
         targets=[],
         file_dep=[],
     )
