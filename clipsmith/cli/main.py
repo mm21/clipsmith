@@ -42,10 +42,18 @@ def callback():
     pass
 
 
+"""
+TODO: options:
+
+--overwrite: Overwrite output if out of date, passes -y to ffmpeg
+--dry-run: Only list the ffmpeg operations which will be performed, passes --dry-run to doit
+"""
+
+
 @app.command(no_args_is_help=True)
 def forge(
     inputs: list[Path] = typer.Argument(
-        help="One or more paths to input video(s) or folder(s) of video(s)"
+        help="One or more paths to input video(s) or folder(s) of videos"
     ),
     output: Path = typer.Argument(help="Path to output video"),
     trim_start: float
@@ -75,7 +83,7 @@ def forge(
     ),
 ):
     """
-    Creates a video from one or more videos, with optional operations applied
+    Create a video from one or more videos with specified operations applied
     """
 
     def parse_res(res: str) -> tuple[int, int]:
@@ -119,11 +127,21 @@ def forge(
         sys.exit(1)
 
 
+# TODO: after playbooks implemented
+# @app.command()
+# def playbook(
+#     file: Path = typer.Argument(help="Path to playbook in .yaml format"),
+# ):
+#     """
+#     Run forge operations specified in a playbook file
+#     """
+
+
 # TODO: after profiles implemented
 # @app.command()
 # def profiles():
 #    """
-#    Lists all available profiles.
+#    List all available profiles
 #    """
 
 

@@ -1,3 +1,5 @@
+<!-- TODO: logo using glyphsynth -->
+
 # ClipSmith
 
 [![Python versions](https://img.shields.io/pypi/pyversions/clipsmith.svg)](https://pypi.org/project/clipsmith)
