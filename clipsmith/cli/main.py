@@ -120,7 +120,7 @@ def forge(
     # do it
     try:
         context.doit()
-    except ChildProcessError as e:
+    except ChildProcessError:
         logging.error(f"Failed to run doit tasks")
         sys.exit(1)
 
