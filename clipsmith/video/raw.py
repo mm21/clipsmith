@@ -8,7 +8,7 @@ from typing import Self
 import yaml
 from pydantic import BaseModel
 
-from ..profile import BaseProfile, DefaultProfile
+from ..profile import BaseProfile
 from .base import BaseVideo, _extract_duration, _extract_res
 
 __all__ = [
@@ -38,13 +38,15 @@ class RawVideoMetadata(BaseModel):
 
     @classmethod
     def _extract(
-        cls, path: Path, profile: BaseProfile | None = None
+        cls,
+        path: Path,
+        *,
+        root_path: Path | None = None,
+        profile: BaseProfile | None = None,
     ) -> RawVideoMetadata:
         """
         Gets metadata from the given path.
         """
-
-        profile or DefaultProfile()
 
         duration, duration_valid = _extract_duration(path.resolve())
         res, res_valid = _extract_res(path.resolve())
@@ -53,8 +55,15 @@ class RawVideoMetadata(BaseModel):
 
         # TODO: try to extract datetime_start based on profile
 
+        rel_filename = (
+            path.name if root_path is None else str(path.relative_to(root_path))
+        )
+
         return cls(
-            filename=path.name, valid=valid, duration=duration, resolution=res
+            filename=rel_filename,
+            valid=valid,
+            duration=duration,
+            resolution=res,
         )
 
 
@@ -68,8 +77,9 @@ class RawVideo(BaseVideo):
     def __init__(
         self,
         path: Path,
-        profile: BaseProfile | None = None,
+        *,
         metadata: RawVideoMetadata | None = None,
+        profile: BaseProfile | None = None,
     ):
         """
         Create a new raw video from a file, using profile to extract
@@ -117,19 +127,29 @@ class RawVideoCacheModel(BaseModel):
         else:
             # get models from videos
             logging.info(f"Checking inputs from folder: '{folder_path}'")
-            files = sorted(folder_path.iterdir(), key=lambda p: p.name)
+
+            files: list[Path] = []
+
+            for dirpath, _, filenames in folder_path.walk():
+                for filename in filenames:
+                    file_path = dirpath / filename
+                    if (
+                        not file_path.name.startswith(".")
+                        and file_path.suffix.lower() in VIDEO_SUFFIXES
+                    ):
+                        files.append(file_path)
+
+            files.sort(key=lambda p: str(p))
+
             video_models: list[RawVideoMetadata] = [
-                RawVideoMetadata._extract(p)
+                RawVideoMetadata._extract(p, root_path=folder_path)
                 for p in files
-                if p.is_file()
-                and not p.name.startswith(".")
-                and p.suffix.lower() in VIDEO_SUFFIXES
             ]
 
             for model in video_models:
                 if not model.valid:
                     logging.info(
-                        f"-> Skipping invalid input: '{folder_path / model.filename}'"
+                        f"-> Found invalid input: '{folder_path / model.filename}'"
                     )
 
             return cls(videos=video_models)

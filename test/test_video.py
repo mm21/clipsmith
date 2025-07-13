@@ -34,9 +34,17 @@ def test_invalid(dashcam_mini2_path: Path):
 
 
 def test_cache(dashcam_mini2_path: Path, tmp_path: Path):
-    # copy samples to temp path
-    for filename in DASHCAM_MINI2_FILENAMES:
+    sample_2 = dashcam_mini2_path / "sample-2.mp4"
+    sample_2_folder = tmp_path / "sample-2"
+
+    # copy samples to temp path, putting sample 2 under a subfolder
+    for filename in [f for f in DASHCAM_MINI2_FILENAMES if f != sample_2.name]:
         shutil.copy(dashcam_mini2_path / filename, tmp_path / filename)
+
+    sample_2_folder.mkdir(exist_ok=True)
+    shutil.copy(
+        dashcam_mini2_path / sample_2.name, sample_2_folder / sample_2.name
+    )
 
     cache = RawVideoCache(tmp_path)
     _check_cache(cache)
@@ -49,8 +57,8 @@ def test_cache(dashcam_mini2_path: Path, tmp_path: Path):
     assert cache_path.exists()
 
     # read back from cache
-    RawVideoCache(tmp_path)
-    _check_cache(cache)
+    cache_readback = RawVideoCache(tmp_path)
+    _check_cache(cache_readback)
 
 
 def _check_cache(cache: RawVideoCache):
@@ -61,3 +69,6 @@ def _check_cache(cache: RawVideoCache):
     assert [v.path.name for v in cache.valid_videos] == DASHCAM_MINI2_FILENAMES[
         :3
     ]
+
+    for video in cache.videos:
+        assert video.path.is_file()
