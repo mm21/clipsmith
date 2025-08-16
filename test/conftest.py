@@ -3,7 +3,7 @@ import math
 import shutil
 from pathlib import Path
 
-from pytest import FixtureRequest, fixture
+from pytest import FixtureRequest, Parser, fixture
 
 from clipsmith.clip.clip import Clip
 from clipsmith.context import Context
@@ -13,9 +13,10 @@ from clipsmith.video.raw import RawVideo
 pytest_plugins = ["pytest_powerpack"]
 
 TEST_ROOT = Path(__file__).parent
-OUTPUT_PATH = TEST_ROOT / "__out__"
-SAMPLES_PATH = TEST_ROOT / "_samples"
-DASHCAM_MINI2_PATH = SAMPLES_PATH / "garmin-dashcam-mini2"
+OUTPUT_DIR = TEST_ROOT / "__out__"
+TEMP_DIR = TEST_ROOT / "__temp__"
+SAMPLES_DIR = TEST_ROOT / "_samples"
+DASHCAM_MINI2_PATH = SAMPLES_DIR / "garmin-dashcam-mini2"
 
 DASHCAM_MINI2_FILENAMES = [
     p.name
@@ -26,34 +27,39 @@ DASHCAM_MINI2_FILENAMES = [
 logging.basicConfig(level=logging.DEBUG)
 
 
-@fixture
-def samples_path() -> Path:
-    return TEST_ROOT / "_samples"
+def pytest_addoption(parser: Parser):
+    parser.addoption(
+        "--keep-temp",
+        action="store_true",
+        help="Place temp folders under test/__temp__ for manual inspection",
+    )
 
 
 @fixture
-def dashcam_mini2_path(samples_path: Path) -> Path:
-    return samples_path / "garmin-dashcam-mini2"
+def output_dir(rel_path: Path) -> Path:
+    path = OUTPUT_DIR / rel_path
+    _setup_dir(path)
+
+    return path
 
 
 @fixture
-def output_dir(request: FixtureRequest) -> Path:
-    # get path to this test
-    fspath = Path(request.node.fspath)
-    testcase_path = fspath.parent / fspath.stem / str(request.node.name)
+def temp_dir(tmp_path: Path, rel_path: Path, keep_temp: bool) -> Path:
+    """
+    Temp folder provided by system, or located under the test folder if
+    --keep-temp is passed.
+    """
+    if keep_temp:
+        local_temp_dir = TEMP_DIR / rel_path
+        _setup_dir(local_temp_dir)
+        return local_temp_dir
+    else:
+        return tmp_path
 
-    # get output path and ensure it exists
-    output_path = OUTPUT_PATH / testcase_path.relative_to(TEST_ROOT)
-    output_path.mkdir(parents=True, exist_ok=True)
 
-    # clean all files in it
-    for path in output_path.iterdir():
-        if path.is_file():
-            path.unlink()
-        else:
-            shutil.rmtree(path)
-
-    return output_path
+@fixture
+def dashcam_mini2_path() -> Path:
+    return SAMPLES_DIR / "garmin-dashcam-mini2"
 
 
 @fixture
@@ -62,6 +68,24 @@ def context() -> Context:
     Get a context.
     """
     return Context()
+
+
+@fixture
+def rel_path(request: FixtureRequest) -> Path:
+    """
+    Get relative path to this test for placing output folder.
+    """
+    fspath = Path(request.node.fspath)
+    test_path = fspath.parent / fspath.stem / str(request.node.name)
+    return test_path.relative_to(TEST_ROOT)
+
+
+@fixture
+def keep_temp(request: FixtureRequest) -> bool:
+    """
+    Keep temps under test folder if flag was passed.
+    """
+    return bool(request.config.getoption("--keep-temp"))
 
 
 def check_clip(
@@ -95,3 +119,16 @@ def get_inputs(count: int) -> list[RawVideo]:
         RawVideo(DASHCAM_MINI2_PATH / file, profile=GarminDashcamMini2)
         for file in DASHCAM_MINI2_FILENAMES[:count]
     ]
+
+
+def _setup_dir(setup_path: Path):
+    """
+    Ensure this folder exists and is empty.
+    """
+    setup_path.mkdir(parents=True, exist_ok=True)
+
+    for path in setup_path.iterdir():
+        if path.is_file():
+            path.unlink()
+        else:
+            shutil.rmtree(path)

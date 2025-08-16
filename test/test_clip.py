@@ -39,14 +39,14 @@ def test_concat(context: Context, output_dir: Path):
 
 
 def test_concat_folder(
-    context: Context, output_dir: Path, dashcam_mini2_path: Path, tmp_path: Path
+    context: Context, output_dir: Path, dashcam_mini2_path: Path, temp_dir: Path
 ):
     """
     Concatenate all inputs from folder.
     """
 
     # copy samples to temp path, with subfolder to test recursion
-    samples_root = shutil.copytree(dashcam_mini2_path, tmp_path / "samples")
+    samples_root = shutil.copytree(dashcam_mini2_path, temp_dir / "samples")
     shutil.copytree(dashcam_mini2_path, samples_root / "nested")
 
     clip = context.forge(output_dir / "clip.mp4", samples_root)
