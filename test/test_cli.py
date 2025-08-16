@@ -7,13 +7,13 @@ from pytest import raises
 from .conftest import DASHCAM_MINI2_PATH
 
 
-def test_forge(output_dir: Path, dashcam_mini2_path: Path, temp_dir: Path):
+def test_forge(output_dir: Path, samples_dir: Path, temp_dir: Path):
     """
     Create a new clip from inputs, scaling resolution.
     """
 
     # copy samples to temp path to write cache
-    inputs = shutil.copytree(dashcam_mini2_path, temp_dir / "inputs")
+    inputs = shutil.copytree(samples_dir, temp_dir / "inputs")
     output = output_dir / "clip.mp4"
 
     assert not output.is_file()

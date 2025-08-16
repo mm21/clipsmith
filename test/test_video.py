@@ -8,43 +8,39 @@ from clipsmith.video.raw import RAW_CACHE_FILENAME, RawVideo, RawVideoCache
 from .conftest import DASHCAM_MINI2_FILENAMES
 
 
-def test_read(dashcam_mini2_path: Path):
+def test_read(samples_dir: Path):
     """
     Read a sample video and verify its metadata.
     """
 
-    sample = RawVideo(
-        dashcam_mini2_path / "sample-1.mp4", profile=GarminDashcamMini2
-    )
+    sample = RawVideo(samples_dir / "sample-1.mp4", profile=GarminDashcamMini2)
 
     assert sample.valid
     assert math.isclose(sample.duration, 1.007)
 
 
-def test_invalid(dashcam_mini2_path: Path):
+def test_invalid(samples_dir: Path):
     """
     Read an invalid sample.
     """
 
     sample = RawVideo(
-        dashcam_mini2_path / "sample-invalid.mp4", profile=GarminDashcamMini2
+        samples_dir / "sample-invalid.mp4", profile=GarminDashcamMini2
     )
 
     assert not sample.valid
 
 
-def test_cache(dashcam_mini2_path: Path, temp_dir: Path):
-    sample_2 = dashcam_mini2_path / "sample-2.mp4"
+def test_cache(samples_dir: Path, temp_dir: Path):
+    sample_2 = samples_dir / "sample-2.mp4"
     sample_2_folder = temp_dir / "sample-2"
 
     # copy samples to temp path, putting sample 2 under a subfolder
     for filename in [f for f in DASHCAM_MINI2_FILENAMES if f != sample_2.name]:
-        shutil.copy(dashcam_mini2_path / filename, temp_dir / filename)
+        shutil.copy(samples_dir / filename, temp_dir / filename)
 
     sample_2_folder.mkdir(exist_ok=True)
-    shutil.copy(
-        dashcam_mini2_path / sample_2.name, sample_2_folder / sample_2.name
-    )
+    shutil.copy(samples_dir / sample_2.name, sample_2_folder / sample_2.name)
 
     cache = RawVideoCache(temp_dir)
     _check_cache(cache)

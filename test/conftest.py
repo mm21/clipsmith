@@ -58,7 +58,7 @@ def temp_dir(tmp_path: Path, rel_path: Path, keep_temp: bool) -> Path:
 
 
 @fixture
-def dashcam_mini2_path() -> Path:
+def samples_dir() -> Path:
     return SAMPLES_DIR / "garmin-dashcam-mini2"
 
 
