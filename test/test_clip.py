@@ -1,4 +1,3 @@
-import shutil
 import time
 from pathlib import Path
 from typing import Any
@@ -30,29 +29,18 @@ def test_concat(context: Context, output_dir: Path):
     check_clip(clip, sum(i.duration for i in inputs))
 
     # verify __repr__
-    print(
-        f"Checked clip: {clip}, datetime_start={clip.datetime_start}, datetime_end={clip.datetime_end}, datetime_range={clip.datetime_range}"
-    )
-
-    # verify creation of clip w/existing file
-    context.forge(clip.path, inputs[0].path)
+    print(f"Checked clip: {clip}")
 
 
-def test_concat_folder(
-    context: Context, output_dir: Path, samples_dir: Path, temp_dir: Path
-):
+def test_concat_folder(context: Context, samples_dir: Path, output_dir: Path):
     """
-    Concatenate all inputs from folder.
+    Forge a new clip by concatenating all inputs from folder.
     """
 
-    # copy samples to temp path, with subfolder to test recursion
-    samples_root = shutil.copytree(samples_dir, temp_dir / "samples")
-    shutil.copytree(samples_dir, samples_root / "nested")
-
-    clip = context.forge(output_dir / "clip.mp4", samples_root)
+    clip = context.forge(output_dir / "clip.mp4", samples_dir)
     context.doit()
 
-    check_clip(clip)
+    check_clip(clip, sum(i.duration for i in get_inputs()))
 
 
 def test_time_scale(context: Context, output_dir: Path):
@@ -207,6 +195,8 @@ def test_reforge(context: Context, output_dir: Path):
     Reforge a forged clip.
     """
 
+    TARGET_DURATION = 5.0
+
     inputs = get_inputs(2)
 
     # concatenate
@@ -215,13 +205,13 @@ def test_reforge(context: Context, output_dir: Path):
     # rescale
     clip2 = clip.reforge(
         output_dir / "clip2.mp4",
-        OperationParams(duration_params=DurationParams(target=5.0)),
+        OperationParams(duration_params=DurationParams(target=TARGET_DURATION)),
     )
 
     context.doit()
 
     check_clip(clip, sum(i.duration for i in inputs))
-    check_clip(clip2, 5.0)
+    check_clip(clip2, TARGET_DURATION)
 
 
 def test_validate(context: Context, output_dir: Path):

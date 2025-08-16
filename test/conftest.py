@@ -13,14 +13,12 @@ from clipsmith.video.raw import RawVideo
 pytest_plugins = ["pytest_powerpack"]
 
 TEST_ROOT = Path(__file__).parent
-OUTPUT_DIR = TEST_ROOT / "__out__"
+SAMPLES_DIR = TEST_ROOT / "_samples" / "garmin-dashcam-mini2"
 TEMP_DIR = TEST_ROOT / "__temp__"
-SAMPLES_DIR = TEST_ROOT / "_samples"
-DASHCAM_MINI2_PATH = SAMPLES_DIR / "garmin-dashcam-mini2"
 
-DASHCAM_MINI2_FILENAMES = [
+SAMPLE_FILENAMES = [
     p.name
-    for p in sorted(DASHCAM_MINI2_PATH.iterdir(), key=lambda p: p.name)
+    for p in sorted(SAMPLES_DIR.iterdir(), key=lambda p: p.name)
     if not p.name.startswith(".")
 ]
 
@@ -36,11 +34,19 @@ def pytest_addoption(parser: Parser):
 
 
 @fixture
-def output_dir(rel_path: Path) -> Path:
-    path = OUTPUT_DIR / rel_path
-    _setup_dir(path)
+def input_dir(temp_dir: Path) -> Path:
+    """
+    Get temp dir in which to place inputs.
+    """
+    return _setup_dir(temp_dir / "__input__")
 
-    return path
+
+@fixture
+def output_dir(temp_dir: Path) -> Path:
+    """
+    Get temp dir in which to place outputs.
+    """
+    return _setup_dir(temp_dir / "__output__")
 
 
 @fixture
@@ -50,16 +56,14 @@ def temp_dir(tmp_path: Path, rel_path: Path, keep_temp: bool) -> Path:
     --keep-temp is passed.
     """
     if keep_temp:
-        local_temp_dir = TEMP_DIR / rel_path
-        _setup_dir(local_temp_dir)
-        return local_temp_dir
+        return TEMP_DIR / rel_path
     else:
         return tmp_path
 
 
 @fixture
 def samples_dir() -> Path:
-    return SAMPLES_DIR / "garmin-dashcam-mini2"
+    return SAMPLES_DIR
 
 
 @fixture
@@ -111,17 +115,18 @@ def check_clip(
     assert clip.resolution == video.resolution
 
 
-def get_inputs(count: int) -> list[RawVideo]:
+def get_inputs(count: int | None = None) -> list[RawVideo]:
     """
-    Get the provided number of inputs as raw videos.
+    Get the provided number of samples as raw videos.
     """
+    count_ = count or len(SAMPLE_FILENAMES) - 1  # exclude invalid sample
     return [
-        RawVideo(DASHCAM_MINI2_PATH / file, profile=GarminDashcamMini2)
-        for file in DASHCAM_MINI2_FILENAMES[:count]
+        RawVideo(SAMPLES_DIR / file, profile=GarminDashcamMini2)
+        for file in SAMPLE_FILENAMES[:count_]
     ]
 
 
-def _setup_dir(setup_path: Path):
+def _setup_dir(setup_path: Path) -> Path:
     """
     Ensure this folder exists and is empty.
     """
@@ -132,3 +137,5 @@ def _setup_dir(setup_path: Path):
             path.unlink()
         else:
             shutil.rmtree(path)
+
+    return setup_path
