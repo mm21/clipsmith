@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime as DateTime
+from functools import cached_property
 from pathlib import Path
 from typing import Self
 
@@ -124,38 +125,39 @@ class RawVideoCacheModel(BaseModel):
                 model_dict = yaml.safe_load(fh)
 
             return cls(**model_dict)
-        else:
-            # get models from videos
-            logging.info(f"Checking inputs from folder: '{folder_path}'")
 
-            files: list[Path] = []
+        # get models from videos
+        logging.info(f"Scanning inputs from folder: '{folder_path}'")
 
-            for dirpath, _, filenames in folder_path.walk():
-                for filename in filenames:
-                    file_path = dirpath / filename
-                    if (
-                        not file_path.name.startswith(".")
-                        and file_path.suffix.lower() in VIDEO_SUFFIXES
-                    ):
-                        files.append(file_path)
+        files = sorted(
+            (
+                p
+                for p in folder_path.iterdir()
+                if p.is_file()
+                and not p.name.startswith(".")
+                and p.suffix.lower() in VIDEO_SUFFIXES
+            ),
+            key=lambda p: p.name,
+        )
 
-            files.sort(key=lambda p: str(p))
+        video_models = [
+            RawVideoMetadata._extract(p, root_path=folder_path) for p in files
+        ]
 
-            video_models: list[RawVideoMetadata] = [
-                RawVideoMetadata._extract(p, root_path=folder_path)
-                for p in files
-            ]
+        for model in video_models:
+            if not model.valid:
+                logging.warning(
+                    f"-> Found invalid input: '{folder_path / model.filename}'"
+                )
 
-            for model in video_models:
-                if not model.valid:
-                    logging.info(
-                        f"-> Found invalid input: '{folder_path / model.filename}'"
-                    )
-
-            return cls(videos=video_models)
+        return cls(videos=video_models)
 
 
 class RawVideoCache:
+    """
+    Cache of videos from a single folder.
+    """
+
     folder_path: Path
     videos: list[RawVideo]
 
@@ -173,13 +175,11 @@ class RawVideoCache:
             for m in self.__model.videos
         ]
 
-        valid_videos = self.valid_videos
+        valid_count = len(self.valid_videos)
+        invalid_count = len(self.videos) - len(self.valid_videos)
+        logging.info(f"-> {valid_count} valid, {invalid_count} invalid")
 
-        logging.info(
-            f"-> Found inputs: {len(valid_videos)} valid, {len(self.videos) - len(valid_videos)} invalid"
-        )
-
-    @property
+    @cached_property
     def valid_videos(self) -> list[RawVideo]:
         """
         Get a filtered list of raw videos.

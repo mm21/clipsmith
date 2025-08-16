@@ -66,6 +66,9 @@ class Clip(BaseVideo):
             inputs[i].resolution == inputs[i - 1].resolution
             for i, _ in enumerate(inputs)
         ), f"Inconsistent input resolutions not currently supported: {inputs}"
+        assert (
+            output.parent.is_dir()
+        ), f"Output parent folder does not exist: {output}"
 
         resolution = operation._get_resolution(inputs[0])
 
@@ -83,6 +86,13 @@ class Clip(BaseVideo):
         self.__inputs = inputs
         self.__operation = operation
         self.__task = self.__prepare_task(inputs)
+
+    @property
+    def inputs(self) -> list[BaseVideo]:
+        """
+        Get input videos.
+        """
+        return self.__inputs
 
     def reforge(self, output: Path, operation: OperationParams) -> Clip:
         """

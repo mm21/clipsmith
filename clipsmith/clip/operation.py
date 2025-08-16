@@ -120,6 +120,11 @@ class OperationParams(BaseParams):
     Whether to pass through audio.
     """
 
+    recurse: bool = False
+    """
+    Whether to recurse into input folders.
+    """
+
     cache: bool = False
     """
     Whether to store a cache of video metadata in input folders.
