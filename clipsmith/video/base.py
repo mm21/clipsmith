@@ -91,12 +91,12 @@ class BaseVideo(ABC):
         """
         Get duration from existing file.
         """
-        duration, valid = _extract_duration(self.path)
+        duration, valid = extract_duration(self.path)
         assert valid
         self.__duration = duration
 
 
-def _extract_duration(path: Path) -> tuple[float | None, bool]:
+def extract_duration(path: Path) -> tuple[float | None, bool]:
     """
     Get duration and validity.
     """
@@ -129,7 +129,7 @@ def _extract_duration(path: Path) -> tuple[float | None, bool]:
     return (duration, valid)
 
 
-def _extract_res(path: Path) -> tuple[tuple[int, int] | None, bool]:
+def extract_res(path: Path) -> tuple[tuple[int, int] | None, bool]:
     """
     Extract resolution and validity.
     """

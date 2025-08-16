@@ -33,6 +33,19 @@ def test_invalid(dashcam_mini2_path: Path):
     assert not sample.valid
 
 
+def test_bg_changed(dashcam_mini2_path: Path):
+    sample_1 = dashcam_mini2_path / "sample-1.mp4"
+    sample_parked = dashcam_mini2_path / "sample-parked.mp4"
+    sample_driving = dashcam_mini2_path / "sample-driving.mp4"
+
+    RawVideo(sample_1)
+    video_parked = RawVideo(sample_parked)
+    video_driving = RawVideo(sample_driving)
+
+    print(f"--- video_parked changed: {video_parked.bg_changed}")
+    print(f"--- video_driving changed: {video_driving.bg_changed}")
+
+
 def test_cache(dashcam_mini2_path: Path, tmp_path: Path):
     sample_2 = dashcam_mini2_path / "sample-2.mp4"
     sample_2_folder = tmp_path / "sample-2"

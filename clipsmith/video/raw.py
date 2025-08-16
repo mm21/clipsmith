@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime as DateTime
+from functools import cached_property
 from pathlib import Path
 from typing import Self
 
@@ -9,7 +10,7 @@ import yaml
 from pydantic import BaseModel
 
 from ..profile import BaseProfile
-from .base import BaseVideo, _extract_duration, _extract_res
+from .base import BaseVideo, extract_duration, extract_res
 
 __all__ = [
     "BaseVideo",
@@ -22,6 +23,21 @@ RAW_CACHE_FILENAME = ".clipsmith_cache.yaml"
 VIDEO_SUFFIXES = [
     ".mp4",
 ]
+
+SAMPLE_INTERVAL = 1.0
+"""
+Interval at which to sample frames for processing.
+"""
+
+WINDOW_SIZE = 5
+"""
+Number of frames in rolling window for processing.
+"""
+
+SSIM_THRESHOLD = 0.7
+"""
+Structural similarity threshold below which movement is detected.
+"""
 
 
 class RawVideoMetadata(BaseModel):
@@ -48,8 +64,8 @@ class RawVideoMetadata(BaseModel):
         Gets metadata from the given path.
         """
 
-        duration, duration_valid = _extract_duration(path.resolve())
-        res, res_valid = _extract_res(path.resolve())
+        duration, duration_valid = extract_duration(path.resolve())
+        res, res_valid = extract_res(path.resolve())
 
         valid = duration_valid and res_valid
 
@@ -99,6 +115,63 @@ class RawVideo(BaseVideo):
     @property
     def valid(self) -> bool:
         return self.__metadata.valid
+
+    @cached_property
+    def bg_changed(self) -> bool:
+        """
+        Analyze video and return whether the background changed. For dashcam
+        footage, this should be False if the car was parked for the entire
+        clip.
+        """
+        import cv2
+        import numpy as np
+        from skimage.metrics import structural_similarity as ssim
+
+        capture = cv2.VideoCapture(self.path)
+        fps = capture.get(cv2.CAP_PROP_FPS)
+        frame_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
+        frame_interval = int(fps * SAMPLE_INTERVAL)
+
+        frame_buffer = []
+        ssim_scores = []
+
+        print(f"--- frame_count={frame_count}, frame_interval={frame_interval}")
+
+        for frame_index in range(0, frame_count, frame_interval):
+            print(f"--- checking frame: {frame_index}")
+
+            capture.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+            ret, frame = capture.read()
+            assert ret
+
+            frame = cv2.resize(frame, (320, 240))
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+            # Add to buffer
+            frame_buffer.append(gray)
+
+            # Keep only last N frames
+            if len(frame_buffer) > WINDOW_SIZE:
+                frame_buffer.pop(0)
+
+            # Compare with all frames in buffer (except current)
+            if len(frame_buffer) > 1:
+                current_scores = []
+                for prev_frame in frame_buffer[:-1]:
+                    score = ssim(prev_frame, gray)
+                    current_scores.append(score)
+
+                # Use minimum SSIM (most different comparison)
+                min_ssim = min(current_scores)
+                ssim_scores.append(min_ssim)
+
+                print(f"--- min_ssim: {min_ssim}")
+
+        capture.release()
+
+        avg_ssim = np.median(ssim_scores) if ssim_scores else 1.0
+        print(f"--- avg_ssim: {avg_ssim}")
+        return avg_ssim < SSIM_THRESHOLD
 
 
 class RawVideoCacheModel(BaseModel):
