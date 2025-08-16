@@ -23,13 +23,19 @@ def test_concat(context: Context, output_dir: Path):
 
     inputs = get_inputs(2)
 
-    clip = context.forge(output_dir / "clip.mp4", inputs)
+    # pass paths to verify input normalization
+    clip = context.forge(output_dir / "clip.mp4", [i.path for i in inputs])
     context.doit()
 
     check_clip(clip, sum(i.duration for i in inputs))
 
-    # verify __repr__
-    print(f"Checked clip: {clip}")
+    # verify __repr__ along with unused properties
+    print(
+        f"Checked clip: {clip}, start={clip.datetime_start}, end={clip.datetime_end}, range={clip.datetime_range}"
+    )
+
+    # verify creation of clip with output already existing (no need to run task)
+    _ = context.forge(clip.path, inputs)
 
 
 def test_concat_folder(context: Context, samples_dir: Path, output_dir: Path):

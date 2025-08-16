@@ -87,13 +87,6 @@ class Clip(BaseVideo):
         self.__operation = operation
         self.__task = self.__prepare_task(inputs)
 
-    @property
-    def inputs(self) -> list[BaseVideo]:
-        """
-        Get input videos.
-        """
-        return self.__inputs
-
     def reforge(self, output: Path, operation: OperationParams) -> Clip:
         """
         Creates a new clip from this one using the indicated operations.

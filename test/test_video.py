@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 
 from clipsmith import OperationParams
-from clipsmith.context import _normalize_inputs
+from clipsmith.context import Context, _normalize_inputs
 from clipsmith.profiles import GarminDashcamMini2
 from clipsmith.video.raw import RAW_CACHE_FILENAME, RawVideo, RawVideoCache
 
@@ -33,23 +33,27 @@ def test_invalid(samples_dir: Path):
     assert not sample.valid
 
 
-def test_cache(samples_dir: Path, input_dir: Path):
+def test_cache(
+    context: Context, samples_dir: Path, input_dir: Path, output_dir: Path
+):
     # copy samples to temp path
     shutil.copytree(samples_dir, input_dir, dirs_exist_ok=True)
 
-    # create cache of samples
-    cache = RawVideoCache(input_dir)
-    _check_cache(cache)
+    # create clip to write cache file
+    _ = context.forge(
+        output_dir / "clip.mp4", input_dir, OperationParams(cache=True)
+    )
 
-    # write cache file
-    cache.write()
-
-    # ensure it got written
+    # ensure cache file got written
     assert (input_dir / RAW_CACHE_FILENAME).is_file()
 
     # read back into new cache object
-    loaded_cache = RawVideoCache(input_dir)
-    _check_cache(loaded_cache)
+    cache = RawVideoCache(input_dir)
+
+    # validate cache object
+    assert [v.path.name for v in cache.videos] == SAMPLE_FILENAMES
+    for video in cache.videos:
+        assert video.path.is_file()
 
 
 def test_recurse(samples_dir: Path, input_dir: Path):
@@ -75,10 +79,3 @@ def test_recurse(samples_dir: Path, input_dir: Path):
     # get inputs with recursing
     recurse_inputs = _normalize_inputs(input_dir, OperationParams(recurse=True))
     assert [i.path.name for i in recurse_inputs] == SAMPLE_FILENAMES
-
-
-def _check_cache(cache: RawVideoCache):
-    assert [v.path.name for v in cache.videos] == SAMPLE_FILENAMES
-
-    for video in cache.videos:
-        assert video.path.is_file()
