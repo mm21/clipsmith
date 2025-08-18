@@ -197,7 +197,7 @@ class RawVideoCache:
         """
         Write .yaml cache of video listing.
         """
-        logging.info(f"Writing cache: {self.cache_path}")
+        logging.info(f"Writing cache: '{self.cache_path}'")
         with self.cache_path.open("w") as fh:
             yaml.safe_dump(
                 self.__model.model_dump(),
