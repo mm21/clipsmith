@@ -6,9 +6,9 @@ from .base import (
     BaseVideo,
 )
 from .raw import (
-    RawVideo,
     RawVideoMetadata,
+    RawVideo,
 )
 
-__all__ = ["BaseVideo", "RawVideo", "RawVideoMetadata"]
+__all__ = ["BaseVideo", "RawVideoMetadata", "RawVideo"]
 # </AUTOGEN_INIT>
