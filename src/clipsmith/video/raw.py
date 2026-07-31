@@ -27,8 +27,9 @@ VIDEO_SUFFIXES = [
 
 class RawVideoMetadata(BaseModel):
     """
-    Metadata associated with a raw video file. Can be cached to avoid
-    re-processing the video.
+    Metadata associated with a raw video file.
+
+    Can be cached to avoid re-processing the video.
     """
 
     filename: str
@@ -48,7 +49,6 @@ class RawVideoMetadata(BaseModel):
         """
         Gets metadata from the given path.
         """
-
         duration, duration_valid = _extract_duration(path.resolve())
         res, res_valid = _extract_res(path.resolve())
 
@@ -83,8 +83,8 @@ class RawVideo(BaseVideo):
         profile: BaseProfile | None = None,
     ):
         """
-        Create a new raw video from a file, using profile to extract
-        metadata if not given.
+        Create a new raw video from a file, using profile to extract metadata if not
+        given.
         """
         meta = metadata or RawVideoMetadata._extract(path, profile=profile)
 
@@ -114,7 +114,6 @@ class RawVideoCacheModel(BaseModel):
         """
         Get model from folder, using the existing cache if present.
         """
-
         cache_path = folder_path / RAW_CACHE_FILENAME
 
         if cache_path.exists():

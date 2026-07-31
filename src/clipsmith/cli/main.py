@@ -56,18 +56,20 @@ def forge(
         help="One or more paths to input video(s) or folder(s) of videos"
     ),
     output: Path = typer.Argument(help="Path to output video"),
-    trim_start: float
-    | None = typer.Option(None, help="Start offset (seconds) in input file(s)"),
-    trim_end: float
-    | None = typer.Option(None, help="End offset (seconds) in input file(s)"),
-    dur_scale: float
-    | None = typer.Option(None, help="Scale duration by scale factor"),
-    dur_target: float
-    | None = typer.Option(None, help="Scale duration to target (seconds)"),
-    res_scale: float
-    | None = typer.Option(None, help="Scale resolution by scale factor"),
-    res_target: str
-    | None = typer.Option(
+    trim_start: float | None = typer.Option(
+        None, help="Start offset (seconds) in input file(s)"
+    ),
+    trim_end: float | None = typer.Option(
+        None, help="End offset (seconds) in input file(s)"
+    ),
+    dur_scale: float | None = typer.Option(None, help="Scale duration by scale factor"),
+    dur_target: float | None = typer.Option(
+        None, help="Scale duration to target (seconds)"
+    ),
+    res_scale: float | None = typer.Option(
+        None, help="Scale resolution by scale factor"
+    ),
+    res_target: str | None = typer.Option(
         None, help="Scale resolution to target as WIDTH:HEIGHT"
     ),
     audio: bool = typer.Option(

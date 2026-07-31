@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from pathlib import Path
 
 from pytest import raises
@@ -28,7 +29,15 @@ def test_module():
     """
     Verify invocation by module.
     """
-    subprocess.check_call(["python", "-m", "clipsmith.cli.main"])
+    # click >= 8.2 treats "no subcommand given" as a usage error (exit 2) while
+    # still printing help
+    proc = subprocess.run(
+        [sys.executable, "-m", "clipsmith.cli.main"],
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 2
+    assert "Usage:" in proc.stdout
 
 
 def test_fail(samples_dir: Path, output_dir: Path):

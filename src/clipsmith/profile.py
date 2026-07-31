@@ -1,6 +1,6 @@
 """
-Encapsulates parameters from which to get additional information from a
-video file, e.g. the location of the date/time stamp.
+Encapsulates parameters from which to get additional information from a video file, e.g.
+the location of the date/time stamp.
 """
 
 __all__ = [
@@ -14,8 +14,8 @@ class BaseProfile:
 
     datetime_rect: tuple[tuple[float, float], tuple[float, float]] | None = None
     """
-    Location of datetime as tuple of upper-left coordinate and size, both
-    specified in terms of percents. 
+    Location of datetime as tuple of upper-left coordinate and size, both specified in
+    terms of percents.
     """
 
 

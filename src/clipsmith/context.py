@@ -1,6 +1,5 @@
 """
-Encapsulates a set of clips, along with task management functionality to
-create them.
+Encapsulates a set of clips, along with task management functionality to create them.
 """
 
 from pathlib import Path
@@ -22,8 +21,9 @@ __all__ = [
 
 class Context:
     """
-    Container in which to store pending tasks to create targets associated
-    with `Clip`s. Perform the clip processing by invoking `Context.doit()`.
+    Container in which to store pending tasks to create targets associated with `Clip`s.
+
+    Perform the clip processing by invoking `Context.doit()`.
     """
 
     __tasks: list[Task]
@@ -40,24 +40,22 @@ class Context:
         """
         Creates a new clip from the given input(s) using the given operations.
 
-        Adds a `doit` task to the associated context; user can then perform
-        processing by invoking `Context.doit`.
+        Adds a `doit` task to the associated context; user can then perform processing
+        by invoking `Context.doit`.
 
-        If any folder is passed as input, it is recursively traversed
-        depth-first to form a list of input videos.
+        If any folder is passed as input, it is recursively traversed depth-first to
+        form a list of input videos.
 
         :param output: Path to output file
-        :param inputs: Path to one or more inputs, which may be a video or folder of videos
+        :param inputs: Path to one or more inputs, which may be a video or folder of
+            videos
         :param operation: Parameters to apply to input
         """
-
         operation_ = operation or OperationParams()
         normalized_inputs = _normalize_inputs(inputs, operation_)
 
         valid_inputs = [
-            v
-            for v in normalized_inputs
-            if not isinstance(v, RawVideo) or v.valid
+            v for v in normalized_inputs if not isinstance(v, RawVideo) or v.valid
         ]
 
         clip = Clip(output, valid_inputs, operation_, self)
@@ -71,7 +69,6 @@ class Context:
 
         :raises ChildProcessError: If any ffmpeg invocations failed
         """
-
         tasks = self.__tasks
 
         class Loader(TaskLoader2):

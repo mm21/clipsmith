@@ -10,8 +10,6 @@ from clipsmith.context import Context
 from clipsmith.profiles import GarminDashcamMini2
 from clipsmith.video.raw import RawVideo
 
-pytest_plugins = ["pytest_powerpack"]
-
 TEST_ROOT = Path(__file__).parent
 SAMPLES_DIR = TEST_ROOT / "_samples" / "garmin-dashcam-mini2"
 TEMP_DIR = TEST_ROOT / "__temp__"
@@ -52,8 +50,8 @@ def output_dir(temp_dir: Path) -> Path:
 @fixture
 def temp_dir(tmp_path: Path, rel_path: Path, keep_temp: bool) -> Path:
     """
-    Temp folder provided by system, or located under the test folder if
-    --keep-temp is passed.
+    Temp folder provided by system, or located under the test folder if --keep-temp is
+    passed.
     """
     if keep_temp:
         return TEMP_DIR / rel_path
@@ -92,13 +90,10 @@ def keep_temp(request: FixtureRequest) -> bool:
     return bool(request.config.getoption("--keep-temp"))
 
 
-def check_clip(
-    clip: Clip, duration_expect: float | None = None, rel_tol: float = 0.1
-):
+def check_clip(clip: Clip, duration_expect: float | None = None, rel_tol: float = 0.1):
     """
     Verify the clip with approximate expected duration.
     """
-
     assert clip.path.is_file()
 
     # read raw video

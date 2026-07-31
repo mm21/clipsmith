@@ -20,7 +20,6 @@ def test_concat(context: Context, output_dir: Path):
     """
     Forge a new clip by concatenating inputs.
     """
-
     inputs = get_inputs(2)
 
     # pass paths to verify input normalization
@@ -42,7 +41,6 @@ def test_concat_folder(context: Context, samples_dir: Path, output_dir: Path):
     """
     Forge a new clip by concatenating all inputs from folder.
     """
-
     clip = context.forge(output_dir / "clip.mp4", samples_dir)
     context.doit()
 
@@ -53,7 +51,6 @@ def test_time_scale(context: Context, output_dir: Path):
     """
     Rescale time based on scale factor.
     """
-
     SCALE_FACTOR = 2.0
 
     inputs = get_inputs(1)
@@ -72,7 +69,6 @@ def test_time_duration(context: Context, output_dir: Path):
     """
     Rescale time based on target duration.
     """
-
     inputs = get_inputs(1)
     operation = OperationParams(
         duration_params=DurationParams(target=5.0),
@@ -89,7 +85,6 @@ def test_time_offsets(context: Context, output_dir: Path):
     """
     Trim input using start/time offsets along with scale factors.
     """
-
     START = 1.0
     END = 2.0
 
@@ -169,7 +164,6 @@ def test_res_scale(context: Context, output_dir: Path):
     """
     Rescale resolution.
     """
-
     input_video = get_inputs(1)[0]
 
     def check(clip: Clip):
@@ -183,9 +177,7 @@ def test_res_scale(context: Context, output_dir: Path):
     operation1 = OperationParams(resolution_params=ResolutionParams(scale=0.5))
 
     # absolute resolution
-    operation2 = OperationParams(
-        resolution_params=ResolutionParams(target=(480, 270))
-    )
+    operation2 = OperationParams(resolution_params=ResolutionParams(target=(480, 270)))
 
     clip1 = context.forge(output_dir / "clip1.mp4", input_video, operation1)
     clip2 = context.forge(output_dir / "clip2.mp4", input_video, operation2)
@@ -200,7 +192,6 @@ def test_reforge(context: Context, output_dir: Path):
     """
     Reforge a forged clip.
     """
-
     TARGET_DURATION = 5.0
 
     inputs = get_inputs(2)
@@ -224,7 +215,6 @@ def test_validate(context: Context, output_dir: Path):
     """
     Test validations.
     """
-
     invalid_params: list[tuple[BaseParams, dict[str, Any]]] = [
         (DurationParams, {"scale": 1.0, "target": 1.0}),
         (

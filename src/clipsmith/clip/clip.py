@@ -58,17 +58,16 @@ class Clip(BaseVideo):
         context: Context,
     ):
         """
-        Creates a clip associated with the given context. Assumes all inputs
-        are valid, if applicable.
+        Creates a clip associated with the given context.
+
+        Assumes all inputs are valid, if applicable.
         """
         assert len(inputs), f"No input videos passed"
         assert all(
             inputs[i].resolution == inputs[i - 1].resolution
             for i, _ in enumerate(inputs)
         ), f"Inconsistent input resolutions not currently supported: {inputs}"
-        assert (
-            output.parent.is_dir()
-        ), f"Output parent folder does not exist: {output}"
+        assert output.parent.is_dir(), f"Output parent folder does not exist: {output}"
 
         resolution = operation._get_resolution(inputs[0])
 
@@ -144,7 +143,6 @@ class Clip(BaseVideo):
         """
         Get ffmpeg args.
         """
-
         # get original duration based on inputs
         duration_orig = sum(i.duration for i in self.__inputs)
 
@@ -163,9 +161,7 @@ class Clip(BaseVideo):
         else:
             # multiple inputs, use temp file containing list of files
 
-            temp = tempfile.NamedTemporaryFile(
-                mode="w", suffix=".txt", delete=False
-            )
+            temp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
             temp.writelines([f"file '{str(file)}'\n" for file in input_paths])
             temp.close()
 

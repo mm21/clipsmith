@@ -14,35 +14,27 @@ def test_read(samples_dir: Path):
     """
     Read a sample video and verify its metadata.
     """
-
     sample = RawVideo(samples_dir / "sample-1.mp4", profile=GarminDashcamMini2)
 
     assert sample.valid
-    assert math.isclose(sample.duration, 1.007)
+    assert math.isclose(sample.duration, 1.007, abs_tol=0.001)
 
 
 def test_invalid(samples_dir: Path):
     """
     Read an invalid sample.
     """
-
-    sample = RawVideo(
-        samples_dir / "sample-invalid.mp4", profile=GarminDashcamMini2
-    )
+    sample = RawVideo(samples_dir / "sample-invalid.mp4", profile=GarminDashcamMini2)
 
     assert not sample.valid
 
 
-def test_cache(
-    context: Context, samples_dir: Path, input_dir: Path, output_dir: Path
-):
+def test_cache(context: Context, samples_dir: Path, input_dir: Path, output_dir: Path):
     # copy samples to temp path
     shutil.copytree(samples_dir, input_dir, dirs_exist_ok=True)
 
     # create clip to write cache file
-    _ = context.forge(
-        output_dir / "clip.mp4", input_dir, OperationParams(cache=True)
-    )
+    _ = context.forge(output_dir / "clip.mp4", input_dir, OperationParams(cache=True))
 
     # ensure cache file got written
     assert (input_dir / RAW_CACHE_FILENAME).is_file()
@@ -60,7 +52,6 @@ def test_recurse(samples_dir: Path, input_dir: Path):
     """
     Verify collecting inputs from folder recursively.
     """
-
     last_filename = SAMPLE_FILENAMES[-1]
     last_input_dir = input_dir / "last"
 

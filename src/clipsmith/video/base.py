@@ -113,9 +113,7 @@ def _extract_duration(path: Path) -> tuple[float | None, bool]:
         str(path),
     ]
 
-    pipes = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    pipes = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = pipes.communicate()
     stdout = stdout.decode()
 
@@ -133,7 +131,6 @@ def _extract_res(path: Path) -> tuple[tuple[int, int] | None, bool]:
     """
     Extract resolution and validity.
     """
-
     cmd = [
         get_ffprobe(),
         "-v",
@@ -147,9 +144,7 @@ def _extract_res(path: Path) -> tuple[tuple[int, int] | None, bool]:
         str(path),
     ]
 
-    pipes = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    pipes = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = pipes.communicate()
     stdout = stdout.decode().strip()
 

@@ -44,6 +44,7 @@ class DurationParams(BaseParams):
     trim_start: float | DateTime | None = None
     """
     Start offset in input file(s), specified as:
+
     - Number of seconds from the beginning
     - Absolute datetime (for datetime-aware inputs)
     """
@@ -51,6 +52,7 @@ class DurationParams(BaseParams):
     trim_end: float | DateTime | None = None
     """
     End offset in input file(s), specified as:
+
     - Number of seconds from the beginning
     - Absolute datetime (for datetime-aware inputs)
     """
@@ -108,9 +110,7 @@ class OperationParams(BaseParams):
     Params to adjust duration by scaling and/or trimming.
     """
 
-    resolution_params: ResolutionParams = Field(
-        default_factory=ResolutionParams
-    )
+    resolution_params: ResolutionParams = Field(default_factory=ResolutionParams)
     """
     Params to adjust resolution by scaling and/or trimming.
     """
@@ -151,8 +151,8 @@ class OperationParams(BaseParams):
 
     def _get_resolution(self, first: BaseVideo) -> tuple[int, int]:
         """
-        Get target resolution based on this operation, or the first video in the
-        inputs otherwise.
+        Get target resolution based on this operation, or the first video in the inputs
+        otherwise.
 
         TODO: find max resolution from inputs instead of using first
         """
@@ -179,9 +179,7 @@ class OperationParams(BaseParams):
             return duration / self._get_effective_duration(duration_orig)
         return None
 
-    def _get_res_scale(
-        self, clip_res: tuple[int, int]
-    ) -> tuple[int, int] | None:
+    def _get_res_scale(self, clip_res: tuple[int, int]) -> tuple[int, int] | None:
         """
         Get target resolution (if any).
         """
@@ -191,13 +189,13 @@ class OperationParams(BaseParams):
 
     def _get_duration_arg(self, duration_orig: float) -> float | None:
         """
-        Get -t arg, if any. Only needed if there is an end offset.
+        Get -t arg, if any.
+
+        Only needed if there is an end offset.
         """
         if self._trim_end:
             if scale_factor := self.duration_params.scale:
-                return scale_factor * self._get_effective_duration(
-                    duration_orig
-                )
+                return scale_factor * self._get_effective_duration(duration_orig)
             elif target := self.duration_params.target:
                 return target
             else:

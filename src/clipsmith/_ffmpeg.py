@@ -18,7 +18,5 @@ def get_ffprobe() -> str:
 def _get_command(cmd: str) -> str:
     path = shutil.which(cmd)
     if path is None:
-        raise RuntimeError(
-            f"Could not find required command in system PATH: {cmd}"
-        )
+        raise RuntimeError(f"Could not find required command in system PATH: {cmd}")
     return path
