@@ -1,6 +1,14 @@
-from pyrollup import rollup
+__submodules__ = ["base", "raw"]
 
-from . import raw
-from .raw import *  # noqa
+# isort: off
+# <AUTOGEN_INIT>
+from .base import (
+    BaseVideo,
+)
+from .raw import (
+    RawVideo,
+    RawVideoMetadata,
+)
 
-__all__ = rollup(raw)
+__all__ = ["BaseVideo", "RawVideo", "RawVideoMetadata"]
+# </AUTOGEN_INIT>

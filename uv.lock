@@ -171,7 +171,6 @@ source = { editable = "." }
 dependencies = [
     { name = "doit" },
     { name = "pydantic" },
-    { name = "pyrollup" },
     { name = "pyyaml" },
     { name = "typer" },
 ]
@@ -185,7 +184,6 @@ dev = [
 requires-dist = [
     { name = "doit", specifier = ">=0.36.0,<0.37" },
     { name = "pydantic", specifier = ">=2.10.2,<3" },
-    { name = "pyrollup", specifier = ">=0.1.0,<0.2" },
     { name = "pyyaml", specifier = ">=6.0.2,<7" },
     { name = "typer", specifier = ">=0.15.0" },
 ]
@@ -918,15 +916,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/7e/ab/265f7dc69d28113ebba19092e57b075f41543b2ed048429c5f56e2b88eac/pyright-1.1.411.tar.gz", hash = "sha256:d885a0551f2e763b089a02702174e7f4ba77548cddabc972ab86d1f7f1b0f998", size = 4112861, upload-time = "2026-06-25T02:14:06.37Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0a/49/385be530a6a5b78d1cbcd5c2e38debc8959a2fc6bdb716f4e581002979fc/pyright-1.1.411-py3-none-any.whl", hash = "sha256:dc7c72a8e2700c55baa127554040e067041ea53ccfd50bf96308cc4291c7d5d9", size = 6181526, upload-time = "2026-06-25T02:14:04.691Z" },
-]
-
-[[package]]
-name = "pyrollup"
-version = "0.1.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d7/27/79fd7b38ba488482ed0813db78b6e0e49fde9417c967c755ca3800655f6e/pyrollup-0.1.0.tar.gz", hash = "sha256:388c152b20b5467d2378462dcc6bac121db3bd98ef1902874caa0e30b24a0f21", size = 3420, upload-time = "2023-11-21T02:02:26.087Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c3/8f/4375e0fbf96962aca89243ee0661956972bf8350c283acc13ec4a6dd7918/pyrollup-0.1.0-py3-none-any.whl", hash = "sha256:a2f73b823e251f6e3c9e14dfe7ce43323824a62fe5fc66d5e6221db6d9fae6ba", size = 3807, upload-time = "2023-11-21T02:02:24.091Z" },
 ]
 
 [[package]]

@@ -215,7 +215,7 @@ def test_validate(context: Context, output_dir: Path):
     """
     Test validations.
     """
-    invalid_params: list[tuple[BaseParams, dict[str, Any]]] = [
+    invalid_params: list[tuple[type[BaseParams], dict[str, Any]]] = [
         (DurationParams, {"scale": 1.0, "target": 1.0}),
         (
             ResolutionParams,

@@ -3,11 +3,35 @@ ClipSmith: Utility to work with video clips, especially suited for creating time
 from dashcam footage.
 """
 
-from pyrollup import rollup
+__submodules__ = ["context", "clip", "video"]
 
-from . import clip, context, video
-from .clip import *  # noqa
-from .context import *  # noqa
-from .video import *  # noqa
+# isort: off
+# <AUTOGEN_INIT>
+from .context import (
+    Context,
+)
+from .clip import (
+    Clip,
+    DurationParams,
+    LogLevel,
+    OperationParams,
+    ResolutionParams,
+)
+from .video import (
+    BaseVideo,
+    RawVideo,
+    RawVideoMetadata,
+)
 
-__all__ = rollup(context, clip, video)
+__all__ = [
+    "BaseVideo",
+    "Clip",
+    "Context",
+    "DurationParams",
+    "LogLevel",
+    "OperationParams",
+    "RawVideo",
+    "RawVideoMetadata",
+    "ResolutionParams",
+]
+# </AUTOGEN_INIT>

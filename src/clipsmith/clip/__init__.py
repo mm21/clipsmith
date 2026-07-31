@@ -1,7 +1,16 @@
-from pyrollup import rollup
+__submodules__ = ["clip", "operation"]
 
-from . import clip, operation
-from .clip import *  # noqa
-from .operation import *  # noqa
+# isort: off
+# <AUTOGEN_INIT>
+from .clip import (
+    Clip,
+)
+from .operation import (
+    DurationParams,
+    LogLevel,
+    OperationParams,
+    ResolutionParams,
+)
 
-__all__ = rollup(clip, operation)
+__all__ = ["Clip", "DurationParams", "LogLevel", "OperationParams", "ResolutionParams"]
+# </AUTOGEN_INIT>

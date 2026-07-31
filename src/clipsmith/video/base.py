@@ -9,21 +9,19 @@ from .._ffmpeg import get_ffprobe
 
 __all__ = [
     "BaseVideo",
-    "RawVideoMetadata",
-    "RawVideo",
 ]
 
 
 class BaseVideo(ABC):
     __path: Path
-    __resolution: tuple[int, int]
+    __resolution: tuple[int, int] | None
     __duration: float | None
     __datetime_start: DateTime | None
 
     def __init__(
         self,
         path: Path,
-        resolution: tuple[int, int],
+        resolution: tuple[int, int] | None,
         duration: float | None = None,
         datetime_start: DateTime | None = None,
     ):
@@ -46,7 +44,11 @@ class BaseVideo(ABC):
     def resolution(self) -> tuple[int, int]:
         """
         Video resolution as width, height.
+
+        :raises ValueError: If resolution has not been set (video is invalid)
         """
+        if self.__resolution is None:
+            raise ValueError(f"Video has no resolution: {self}")
         return self.__resolution
 
     @property

@@ -87,7 +87,7 @@ class Context:
 
 
 def _normalize_inputs(
-    inputs: Iterable[Path | BaseVideo], operation: OperationParams
+    inputs: Path | BaseVideo | Iterable[Path | BaseVideo], operation: OperationParams
 ) -> list[BaseVideo]:
     inputs_ = inputs if isinstance(inputs, Iterable) else [inputs]
 

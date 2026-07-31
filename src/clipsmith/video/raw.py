@@ -13,7 +13,6 @@ from ..profile import BaseProfile
 from .base import BaseVideo, _extract_duration, _extract_res
 
 __all__ = [
-    "BaseVideo",
     "RawVideoMetadata",
     "RawVideo",
 ]
@@ -36,7 +35,7 @@ class RawVideoMetadata(BaseModel):
     valid: bool
     duration: float | None
     resolution: tuple[int, int] | None
-    datetime_start: tuple[DateTime, DateTime] | None = None
+    datetime_start: DateTime | None = None
 
     @classmethod
     def _extract(
@@ -44,7 +43,7 @@ class RawVideoMetadata(BaseModel):
         path: Path,
         *,
         root_path: Path | None = None,
-        profile: BaseProfile | None = None,
+        profile: type[BaseProfile] | None = None,
     ) -> RawVideoMetadata:
         """
         Gets metadata from the given path.
@@ -80,7 +79,7 @@ class RawVideo(BaseVideo):
         path: Path,
         *,
         metadata: RawVideoMetadata | None = None,
-        profile: BaseProfile | None = None,
+        profile: type[BaseProfile] | None = None,
     ):
         """
         Create a new raw video from a file, using profile to extract metadata if not
