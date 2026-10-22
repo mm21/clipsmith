@@ -115,9 +115,10 @@ def _extract_duration(path: Path) -> tuple[float | None, bool]:
         str(path),
     ]
 
-    pipes = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    pipes = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
     stdout, stderr = pipes.communicate()
-    stdout = stdout.decode()
 
     if pipes.returncode != 0 or len(stderr) > 0 or len(stdout) == 0:
         duration = None
@@ -146,9 +147,11 @@ def _extract_res(path: Path) -> tuple[tuple[int, int] | None, bool]:
         str(path),
     ]
 
-    pipes = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    pipes = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
     stdout, stderr = pipes.communicate()
-    stdout = stdout.decode().strip()
+    stdout = stdout.strip()
 
     if pipes.returncode != 0 or len(stderr) > 0 or len(stdout) == 0:
         res = None
