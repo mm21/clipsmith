@@ -2,8 +2,6 @@ __cache__
 __out__
 __pycache__
 __temp__
-.claude/*
-!.claude/skills
 .doit.db*
 .venv
 build
